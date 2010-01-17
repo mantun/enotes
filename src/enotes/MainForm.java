@@ -343,7 +343,7 @@ public class MainForm extends javax.swing.JFrame {
     }//GEN-LAST:event_btFindActionPerformed
 
     private void miAboutActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_miAboutActionPerformed
-        JOptionPane.showMessageDialog(this, "Encrypted Notepad\n(c) 2010. Ivan Voras <ivoras@gmail.com>\nReleased under the BSD License\nProject web: http://sourceforge.net/projects/enotes");
+        JOptionPane.showMessageDialog(this, "Encrypted Notepad 1.0beta\n(c) 2010. Ivan Voras <ivoras@gmail.com>\nReleased under the BSD License\nProject web: http://sourceforge.net/projects/enotes\n\nUsing "+CRYPTO_MODE);
     }//GEN-LAST:event_miAboutActionPerformed
 
 

@@ -22,13 +22,10 @@ public class Main {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (Exception e) {}
 
-        System.out.println(System.getProperties());
-
         MainForm mf = new MainForm();
         mf.setSize(800, 550);
         mf.setLocationRelativeTo(null);
         mf.setVisible(true);
-
     }
 
 }
