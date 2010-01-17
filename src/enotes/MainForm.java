@@ -21,9 +21,11 @@ import java.io.ObjectOutputStream;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.security.spec.AlgorithmParameterSpec;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.GZIPOutputStream;
 import javax.crypto.Cipher;
 import javax.crypto.CipherOutputStream;
 import javax.crypto.NoSuchPaddingException;
@@ -69,7 +71,7 @@ public class MainForm extends javax.swing.JFrame {
                 updateCaretStatus();
             }
           } );
-
+        updateCaretStatus();
     }
 
     /** This method is called from within the constructor to
@@ -83,6 +85,9 @@ public class MainForm extends javax.swing.JFrame {
 
         jPanel1 = new javax.swing.JPanel();
         lbCaret = new javax.swing.JLabel();
+        jPanel2 = new javax.swing.JPanel();
+        tfFind = new javax.swing.JTextField();
+        jButton1 = new javax.swing.JButton();
         jScrollPane1 = new javax.swing.JScrollPane();
         tp = new javax.swing.JTextPane();
         jMenuBar1 = new javax.swing.JMenuBar();
@@ -110,9 +115,30 @@ public class MainForm extends javax.swing.JFrame {
         lbCaret.setText("00:00");
         jPanel1.add(lbCaret, java.awt.BorderLayout.WEST);
 
+        jPanel2.setLayout(new java.awt.BorderLayout());
+
+        tfFind.setForeground(java.awt.SystemColor.inactiveCaption);
+        tfFind.setText("Find...");
+        tfFind.setMinimumSize(new java.awt.Dimension(150, 19));
+        tfFind.setPreferredSize(new java.awt.Dimension(150, 19));
+        tfFind.addFocusListener(new java.awt.event.FocusAdapter() {
+            public void focusGained(java.awt.event.FocusEvent evt) {
+                tfFindFocusGained(evt);
+            }
+            public void focusLost(java.awt.event.FocusEvent evt) {
+                tfFindFocusLost(evt);
+            }
+        });
+        jPanel2.add(tfFind, java.awt.BorderLayout.CENTER);
+
+        jButton1.setText("Find");
+        jPanel2.add(jButton1, java.awt.BorderLayout.EAST);
+
+        jPanel1.add(jPanel2, java.awt.BorderLayout.EAST);
+
         getContentPane().add(jPanel1, java.awt.BorderLayout.SOUTH);
 
-        tp.setFont(new java.awt.Font("Monospaced", 0, 12)); // NOI18N
+        tp.setFont(new java.awt.Font("Monospaced", 0, 12));
         tp.addInputMethodListener(new java.awt.event.InputMethodListener() {
             public void inputMethodTextChanged(java.awt.event.InputMethodEvent evt) {
             }
@@ -232,12 +258,28 @@ public class MainForm extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_tpKeyPressed
 
+    private void tfFindFocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_tfFindFocusGained
+        if (tfFind.getText().equals("Find...")) {
+            tfFind.setForeground(java.awt.SystemColor.controlText);
+            tfFind.setText("");
+        }
+    }//GEN-LAST:event_tfFindFocusGained
+
+    private void tfFindFocusLost(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_tfFindFocusLost
+        if (tfFind.getText().equals("")) {
+            tfFind.setText("Find...");
+            tfFind.setForeground(java.awt.SystemColor.inactiveCaption);
+        }
+    }//GEN-LAST:event_tfFindFocusLost
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton jButton1;
     private javax.swing.JMenu jMenu1;
     private javax.swing.JMenu jMenu2;
     private javax.swing.JMenuBar jMenuBar1;
     private javax.swing.JPanel jPanel1;
+    private javax.swing.JPanel jPanel2;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JSeparator jSeparator1;
     private javax.swing.JLabel lbCaret;
@@ -246,6 +288,7 @@ public class MainForm extends javax.swing.JFrame {
     private javax.swing.JMenuItem miOpen;
     private javax.swing.JMenuItem miSave;
     private javax.swing.JMenuItem miSaveAs;
+    private javax.swing.JTextField tfFind;
     private javax.swing.JTextPane tp;
     // End of variables declaration//GEN-END:variables
 
@@ -373,7 +416,18 @@ public class MainForm extends javax.swing.JFrame {
         sout.write(DocMetadata.VERSION_MINOR);
         sout.write(docm.key, docm.key.length-3, 2);
 
-        AlgorithmParameterSpec paramSpec = new IvParameterSpec(DocMetadata.DEFAULT_IV);
+        byte[] iv = new byte[16];
+        try {
+            SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
+            random.nextBytes(iv);
+        } catch (NoSuchAlgorithmException ex) {
+            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, null, ex);
+            System.exit(1);
+        }
+
+        sout.write(iv);
+
+        AlgorithmParameterSpec paramSpec = new IvParameterSpec(iv);
         Cipher ecipher = null;
         try {
             ecipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
@@ -384,10 +438,8 @@ public class MainForm extends javax.swing.JFrame {
             Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, null, ex);
             System.exit(1);
         }
-        byte[] xkey = new byte[16];
-        System.arraycopy(docm.key, 0, xkey, 0, 16);
         try {
-            ecipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(xkey, "AES"), paramSpec);
+            ecipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(docm.key, 0, 16, "AES"), paramSpec);
         } catch (InvalidKeyException ex) {
             Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, null, ex);
             System.exit(1);
@@ -397,7 +449,8 @@ public class MainForm extends javax.swing.JFrame {
         }
 
         CipherOutputStream cout = new CipherOutputStream(sout, ecipher);
-        ObjectOutputStream oout = new ObjectOutputStream(cout);
+        GZIPOutputStream zout = new GZIPOutputStream(cout);
+        ObjectOutputStream oout = new ObjectOutputStream(zout);
 
         oout.writeInt(docm.caretPosition);
         oout.writeUTF(docm.filename);
@@ -405,6 +458,7 @@ public class MainForm extends javax.swing.JFrame {
         oout.writeUTF(tp.getText());
 
         oout.close();
+        zout.close();
         cout.close();
         sout.close();
         fout.close();
