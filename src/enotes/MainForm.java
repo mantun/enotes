@@ -11,12 +11,15 @@
 
 package enotes;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -25,8 +28,10 @@ import java.security.SecureRandom;
 import java.security.spec.AlgorithmParameterSpec;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import javax.crypto.Cipher;
+import javax.crypto.CipherInputStream;
 import javax.crypto.CipherOutputStream;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
@@ -53,6 +58,9 @@ public class MainForm extends javax.swing.JFrame {
     static final int WHYSAVE_SAVE = 1;
     static final int WHYSAVE_SAVEAS = 2;
     static final int WHYSAVE_CLOSE = 3;
+
+    static final String CRYPTO_MODE = "AES/CBC/PKCS5Padding";
+    static final String CRYPTO_ALG = "AES";
 
     private DocMetadata docm = new DocMetadata();
     int tp_line, tp_col;
@@ -171,6 +179,11 @@ public class MainForm extends javax.swing.JFrame {
 
         miOpen.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_O, java.awt.event.InputEvent.CTRL_MASK));
         miOpen.setText("Open...");
+        miOpen.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                miOpenActionPerformed(evt);
+            }
+        });
         jMenu1.add(miOpen);
 
         miSave.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_S, java.awt.event.InputEvent.CTRL_MASK));
@@ -272,6 +285,10 @@ public class MainForm extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_tfFindFocusLost
 
+    private void miOpenActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_miOpenActionPerformed
+        openFile();
+    }//GEN-LAST:event_miOpenActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButton1;
@@ -364,11 +381,12 @@ public class MainForm extends javax.swing.JFrame {
                     return "Encrypted Notepad files (*.etxt)";
                 }
             });
-
             int ret = fch.showSaveDialog(this);
-            if (ret == JFileChooser.APPROVE_OPTION)
+            if (ret == JFileChooser.APPROVE_OPTION) {
                 fSave = fch.getSelectedFile();
-            else
+                if (fSave.getName().indexOf(".") == -1)
+                    fSave = new File(fSave.getAbsolutePath() + ".etxt");
+            } else
                 return OPT_NOSAVE;
         } else
             fSave = new File(docm.filename);
@@ -409,12 +427,12 @@ public class MainForm extends javax.swing.JFrame {
             docm.saveHistory.add(new SaveMetadata(System.currentTimeMillis(), current_user));
         
         FileOutputStream fout = new FileOutputStream(f);
-        BufferedOutputStream sout = new BufferedOutputStream(fout);
+        BufferedOutputStream bout = new BufferedOutputStream(fout);
 
-        sout.write(DocMetadata.SIGNATURE);
-        sout.write(DocMetadata.VERSION_FORMAT);
-        sout.write(DocMetadata.VERSION_MINOR);
-        sout.write(docm.key, docm.key.length-3, 2);
+        bout.write(DocMetadata.SIGNATURE);
+        bout.write(DocMetadata.VERSION_FORMAT);
+        bout.write(DocMetadata.VERSION_MINOR);
+        bout.write(docm.key, docm.key.length-3, 2);
 
         byte[] iv = new byte[16];
         try {
@@ -425,12 +443,12 @@ public class MainForm extends javax.swing.JFrame {
             System.exit(1);
         }
 
-        sout.write(iv);
+        bout.write(iv);
 
         AlgorithmParameterSpec paramSpec = new IvParameterSpec(iv);
         Cipher ecipher = null;
         try {
-            ecipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            ecipher = Cipher.getInstance(CRYPTO_MODE);
         } catch (NoSuchAlgorithmException ex) {
             Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, null, ex);
             System.exit(1);
@@ -439,7 +457,7 @@ public class MainForm extends javax.swing.JFrame {
             System.exit(1);
         }
         try {
-            ecipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(docm.key, 0, 16, "AES"), paramSpec);
+            ecipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(docm.key, 0, 16, CRYPTO_ALG), paramSpec);
         } catch (InvalidKeyException ex) {
             Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, null, ex);
             System.exit(1);
@@ -448,20 +466,161 @@ public class MainForm extends javax.swing.JFrame {
             System.exit(1);
         }
 
-        CipherOutputStream cout = new CipherOutputStream(sout, ecipher);
+        CipherOutputStream cout = new CipherOutputStream(bout, ecipher);
         GZIPOutputStream zout = new GZIPOutputStream(cout);
         ObjectOutputStream oout = new ObjectOutputStream(zout);
 
-        oout.writeInt(docm.caretPosition);
-        oout.writeUTF(docm.filename);
-        oout.writeObject(docm.saveHistory);
+        docm.saveMetadata(oout);
         oout.writeUTF(tp.getText());
 
         oout.close();
         zout.close();
         cout.close();
-        sout.close();
+        bout.close();
         fout.close();
+        return true;
+    }
+
+
+    /**
+     * Returns true if a file was loaded.
+     * 
+     * @return
+     */
+    private boolean openFile() {
+        if (checkSave(WHYSAVE_CLOSE) == OPT_CANCEL)
+            return false;
+
+        JFileChooser fch = new JFileChooser();
+        fch.addChoosableFileFilter(new FileFilter() {
+            @Override
+            public boolean accept(File f) {
+                String name = f.getName().toLowerCase();
+                return name.endsWith(".txt");
+            }
+            @Override
+            public String getDescription() {
+                return "Plain text files (*.txt)";
+            }
+        });
+        fch.addChoosableFileFilter(new FileFilter() {
+            public boolean accept(File pathname) {
+                String name = pathname.getName().toLowerCase();
+                return name.endsWith(".etxt");
+            }
+            @Override
+            public String getDescription() {
+                return "Encrypted Notepad files (*.etxt)";
+            }
+        });
+
+        File fOpen = null;
+
+        int ret = fch.showOpenDialog(this);
+        if (ret == JFileChooser.APPROVE_OPTION)
+            fOpen = fch.getSelectedFile();
+        else
+            return false;
+
+        try {
+            doOpen(fOpen);
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, ex.getMessage(), ex);
+            JOptionPane.showMessageDialog(this, ex.getMessage());
+            return false;
+        } catch (IOException ex) {
+            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, ex.getMessage(), ex);
+            JOptionPane.showMessageDialog(this, "IOException: "+ex.getMessage());
+            return false;
+        }
+        return true;
+    }
+
+
+    private boolean doOpen(File fOpen) throws FileNotFoundException, IOException {
+        FileInputStream fin = new FileInputStream(fOpen);
+        BufferedInputStream bin = new BufferedInputStream(fin);
+
+        byte[] sig = new byte[DocMetadata.SIGNATURE.length];
+        bin.read(sig);
+        boolean equal = true;
+        for (int i = 0; i < sig.length; i++)
+            if (sig[i] != DocMetadata.SIGNATURE[i])
+                equal = false;
+        if (!equal) {
+            JOptionPane.showMessageDialog(this, "File is not a valid Encrypted Notepad file: "+fOpen.getAbsolutePath());
+            return false;
+        }
+        byte ver_format = (byte) bin.read();
+        if (ver_format > DocMetadata.VERSION_FORMAT) {
+            JOptionPane.showMessageDialog(this, "File is a Encrypted Notepad file but cannot be opened by this version of the program: "+fOpen.getAbsolutePath());
+            return false;
+        }
+        byte ver_minor = (byte) bin.read(); /* ignore it */
+
+        DocMetadata newdocm = new DocMetadata();
+        while (true) {
+            String pwd = PasswordDialog.getPassword();
+            if (pwd == null)
+                return false;
+            newdocm.key = Util.sha1hash(pwd);
+
+            byte[] pwdhash = new byte[2];
+            bin.read(pwdhash);
+            equal = true;
+            for (int i = 0; i < pwdhash.length; i++)
+                if (pwdhash[i] != newdocm.key[newdocm.key.length-3+i])
+                    equal = false;
+
+            if (equal)
+                break;
+            else
+                JOptionPane.showMessageDialog(this, "Invalid password!");
+        }
+        
+        byte[] iv = new byte[16];
+        bin.read(iv);
+
+        AlgorithmParameterSpec paramSpec = new IvParameterSpec(iv);
+        Cipher dcipher = null;
+        try {
+            dcipher = Cipher.getInstance(CRYPTO_MODE);
+        } catch (NoSuchAlgorithmException ex) {
+            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, null, ex);
+            System.exit(1);
+        } catch (NoSuchPaddingException ex) {
+            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, null, ex);
+            System.exit(1);
+        }
+        try {
+            dcipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(newdocm.key, 0, 16, CRYPTO_ALG), paramSpec);
+        } catch (InvalidKeyException ex) {
+            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, null, ex);
+            System.exit(1);
+        } catch (InvalidAlgorithmParameterException ex) {
+            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, null, ex);
+            System.exit(1);
+        }
+
+        CipherInputStream cin = new CipherInputStream(bin, dcipher);
+        GZIPInputStream zin = new GZIPInputStream(cin);
+        ObjectInputStream oin = new ObjectInputStream(zin);
+        
+        newdocm.loadMetadata(oin);
+        String text = oin.readUTF();
+
+        oin.close();
+        zin.close();
+        cin.close();
+        bin.close();
+        fin.close();
+
+        tp.setText(text);
+        tp.setCaretPosition(newdocm.caretPosition);
+        docm = newdocm;
+        docm.filename = fOpen.getAbsolutePath();
+        updateTitle();
+        
         return true;
     }
 }
