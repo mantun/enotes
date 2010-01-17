@@ -14,6 +14,8 @@ package enotes;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -472,6 +474,14 @@ public class MainForm extends javax.swing.JFrame {
     }
 
 
+    /**
+     * Saves the currently edited document to the given file.
+     * 
+     * @param f
+     * @return
+     * @throws FileNotFoundException
+     * @throws IOException
+     */
     private boolean doSave(File f) throws FileNotFoundException, IOException {
         assert(docm.key != null);
 
@@ -528,12 +538,12 @@ public class MainForm extends javax.swing.JFrame {
 
         CipherOutputStream cout = new CipherOutputStream(bout, ecipher);
         GZIPOutputStream zout = new GZIPOutputStream(cout);
-        ObjectOutputStream oout = new ObjectOutputStream(zout);
+        DataOutputStream dout = new DataOutputStream(zout);
 
-        docm.saveMetadata(oout);
-        oout.writeUTF(tp.getText());
+        docm.saveMetadata(dout);
+        dout.writeUTF(tp.getText());
 
-        oout.close();
+        dout.close();
         zout.close();
         cout.close();
         bout.close();
@@ -597,6 +607,14 @@ public class MainForm extends javax.swing.JFrame {
     }
 
 
+    /**
+     * Opens the specified file to be the currently edited document.
+     * 
+     * @param fOpen
+     * @return
+     * @throws FileNotFoundException
+     * @throws IOException
+     */
     private boolean doOpen(File fOpen) throws FileNotFoundException, IOException {
         FileInputStream fin = new FileInputStream(fOpen);
         BufferedInputStream bin = new BufferedInputStream(fin);
@@ -664,12 +682,12 @@ public class MainForm extends javax.swing.JFrame {
 
         CipherInputStream cin = new CipherInputStream(bin, dcipher);
         GZIPInputStream zin = new GZIPInputStream(cin);
-        ObjectInputStream oin = new ObjectInputStream(zin);
+        DataInputStream din = new DataInputStream(zin);
         
-        newdocm.loadMetadata(oin);
-        String text = oin.readUTF();
+        newdocm.loadMetadata(din);
+        String text = din.readUTF();
 
-        oin.close();
+        din.close();
         zin.close();
         cin.close();
         bin.close();
