@@ -6,9 +6,9 @@
 
 package enotes;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 
 /**
@@ -27,7 +27,7 @@ public class DocMetadata {
     public int caretPosition;
     public byte[] key;
 
-    void saveMetadata(ObjectOutputStream oout) throws IOException {
+    void saveMetadata(DataOutputStream oout) throws IOException {
         oout.writeInt(caretPosition);
         oout.writeUTF(filename);
         oout.writeInt(saveHistory.size());
@@ -37,7 +37,7 @@ public class DocMetadata {
         }
     }
 
-    void loadMetadata(ObjectInputStream ois) throws IOException {
+    void loadMetadata(DataInputStream ois) throws IOException {
         caretPosition = ois.readInt();
         filename = ois.readUTF();
         int nSave = ois.readInt();
