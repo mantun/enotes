@@ -12,12 +12,24 @@
 package enotes;
 
 import java.io.BufferedOutputStream;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.AlgorithmParameterSpec;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.crypto.Cipher;
+import javax.crypto.CipherOutputStream;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.event.CaretEvent;
@@ -35,6 +47,10 @@ public class MainForm extends javax.swing.JFrame {
     static final int OPT_SAVE = 1;
     static final int OPT_NOSAVE = 2;
     static final int OPT_CANCEL = 3;
+
+    static final int WHYSAVE_SAVE = 1;
+    static final int WHYSAVE_SAVEAS = 2;
+    static final int WHYSAVE_CLOSE = 3;
 
     private DocMetadata docm = new DocMetadata();
     int tp_line, tp_col;
@@ -108,6 +124,9 @@ public class MainForm extends javax.swing.JFrame {
             public void keyTyped(java.awt.event.KeyEvent evt) {
                 tpKeyTyped(evt);
             }
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                tpKeyPressed(evt);
+            }
         });
         jScrollPane1.setViewportView(tp);
 
@@ -179,7 +198,7 @@ public class MainForm extends javax.swing.JFrame {
     }//GEN-LAST:event_formWindowClosing
 
     private void miNewActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_miNewActionPerformed
-        if (checkSave() == OPT_CANCEL)
+        if (checkSave(WHYSAVE_CLOSE) == OPT_CANCEL)
             return;
         tp.setText("");
         docm = new DocMetadata();
@@ -191,22 +210,27 @@ public class MainForm extends javax.swing.JFrame {
             miSaveAsActionPerformed(evt);
             return;
         }
+        checkSave(WHYSAVE_SAVE);
     }//GEN-LAST:event_miSaveActionPerformed
 
     private void miSaveAsActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_miSaveAsActionPerformed
-        // TODO add your handling code here:
+        checkSave(WHYSAVE_SAVEAS);
     }//GEN-LAST:event_miSaveAsActionPerformed
 
     private void tpKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_tpKeyTyped
-        if (!docm.modified) {
-            docm.modified = true;
-            updateTitle();
-        }
+
     }//GEN-LAST:event_tpKeyTyped
 
     private void tpCaretPositionChanged(java.awt.event.InputMethodEvent evt) {//GEN-FIRST:event_tpCaretPositionChanged
         updateCaretStatus();
     }//GEN-LAST:event_tpCaretPositionChanged
+
+    private void tpKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_tpKeyPressed
+        if (!docm.modified) {
+            docm.modified = true;
+            updateTitle();
+        }
+    }//GEN-LAST:event_tpKeyPressed
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -227,7 +251,7 @@ public class MainForm extends javax.swing.JFrame {
 
 
     private boolean canExit() {
-        return checkSave() != OPT_CANCEL;
+        return checkSave(WHYSAVE_CLOSE) != OPT_CANCEL;
     }
     
 
@@ -253,76 +277,135 @@ public class MainForm extends javax.swing.JFrame {
      *
      * @return
      */
-    private int checkSave() {
-        if (!docm.modified)
+    private int checkSave(int whySave) {
+        if ((whySave == WHYSAVE_SAVE || whySave == WHYSAVE_CLOSE) && !docm.modified)
             return OPT_NOSAVE;
 
-        int opt = JOptionPane.showConfirmDialog(this, "Do you want to save the file "+docm.filename, "Save file?", 
-                JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
-        if (opt == JOptionPane.CANCEL_OPTION)
-            return OPT_CANCEL;
-        if (opt == JOptionPane.NO_OPTION)
-            return OPT_NOSAVE;
-
-        JFileChooser fch = new JFileChooser();
-        fch.addChoosableFileFilter(new FileFilter() {
-            public boolean accept(File pathname) {
-                String name = pathname.getName().toLowerCase();
-                return name.endsWith(".etxt");
-            }
-            @Override
-            public String getDescription() {
-                return "Encrypted Notepad files (*.etxt)";
-            }
-        });
-        fch.addChoosableFileFilter(new FileFilter() {
-            @Override
-            public boolean accept(File f) {
-                String name = f.getName().toLowerCase();
-                return name.endsWith(".txt");
-            }
-            @Override
-            public String getDescription() {
-                return "Plain text files (*.txt)";
-            }
-        });
-        fch.addChoosableFileFilter(new FileFilter() {
-            @Override
-            public boolean accept(File f) {
-                return true;
-            }
-            @Override
-            public String getDescription() {
-                return "All files (*.*)";
-            }
-        });
-
-        int ret = fch.showSaveDialog(this);
-        if (ret == JFileChooser.APPROVE_OPTION) {
-            try {
-                return doSave(fch.getSelectedFile()) ? OPT_SAVE : OPT_CANCEL;
-            } catch (FileNotFoundException ex) {
-                JOptionPane.showMessageDialog(this, ex.getMessage());
-                Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, ex.getMessage(), ex);
+        if (whySave == WHYSAVE_CLOSE) {
+            int opt = JOptionPane.showConfirmDialog(this, "Do you want to save the file "+(docm.filename != null ? docm.filename : ""), "Save file?",
+                    JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
+            if (opt == JOptionPane.CANCEL_OPTION)
                 return OPT_CANCEL;
-            } catch (IOException ex) {
-                JOptionPane.showMessageDialog(this, ex.getMessage());
-                Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, ex.getMessage(), ex);
+            if (opt == JOptionPane.NO_OPTION)
+                return OPT_NOSAVE;
+        }
+
+        if (docm.key == null) {
+            String pwd = PasswordDialog.getPassword();
+            if (pwd == null)
                 return OPT_CANCEL;
-            }
+            docm.key = Util.sha1hash(pwd);
+        }
+
+        File fSave = null;
+        if (whySave == WHYSAVE_SAVEAS || docm.filename == null) {
+            JFileChooser fch = new JFileChooser();
+            fch.addChoosableFileFilter(new FileFilter() {
+                @Override
+                public boolean accept(File f) {
+                    String name = f.getName().toLowerCase();
+                    return name.endsWith(".txt");
+                }
+                @Override
+                public String getDescription() {
+                    return "Plain text files (*.txt)";
+                }
+            });
+            fch.addChoosableFileFilter(new FileFilter() {
+                public boolean accept(File pathname) {
+                    String name = pathname.getName().toLowerCase();
+                    return name.endsWith(".etxt");
+                }
+                @Override
+                public String getDescription() {
+                    return "Encrypted Notepad files (*.etxt)";
+                }
+            });
+
+            int ret = fch.showSaveDialog(this);
+            if (ret == JFileChooser.APPROVE_OPTION)
+                fSave = fch.getSelectedFile();
+            else
+                return OPT_NOSAVE;
         } else
-            return OPT_NOSAVE;
+            fSave = new File(docm.filename);
+        
+        docm.filename = fSave.getAbsolutePath();
+        try {
+            boolean saved = doSave(fSave);
+            if (saved) {
+                docm.modified = false;
+                updateTitle();
+                return OPT_SAVE;
+            }
+            return OPT_CANCEL;
+        } catch (FileNotFoundException ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage());
+            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, ex.getMessage(), ex);
+            return OPT_CANCEL;
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage());
+            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, ex.getMessage(), ex);
+            return OPT_CANCEL;
+        }
     }
 
 
     private boolean doSave(File f) throws FileNotFoundException, IOException {
         assert(docm.key != null);
+
+        String current_user = System.getProperty("user.name");
+        if (docm.saveHistory.size() != 0) {
+            SaveMetadata smd = docm.saveHistory.get(docm.saveHistory.size()-1);
+            if (!smd.username.equalsIgnoreCase(current_user)) {
+                smd = new SaveMetadata(System.currentTimeMillis(), current_user);
+                docm.saveHistory.add(smd);
+            } else
+                smd.timestamp = System.currentTimeMillis();
+        } else
+            docm.saveHistory.add(new SaveMetadata(System.currentTimeMillis(), current_user));
         
         FileOutputStream fout = new FileOutputStream(f);
         BufferedOutputStream sout = new BufferedOutputStream(fout);
 
         sout.write(DocMetadata.SIGNATURE);
+        sout.write(DocMetadata.VERSION_FORMAT);
+        sout.write(DocMetadata.VERSION_MINOR);
+        sout.write(docm.key, docm.key.length-3, 2);
 
+        AlgorithmParameterSpec paramSpec = new IvParameterSpec(DocMetadata.DEFAULT_IV);
+        Cipher ecipher = null;
+        try {
+            ecipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+        } catch (NoSuchAlgorithmException ex) {
+            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, null, ex);
+            System.exit(1);
+        } catch (NoSuchPaddingException ex) {
+            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, null, ex);
+            System.exit(1);
+        }
+        byte[] xkey = new byte[16];
+        System.arraycopy(docm.key, 0, xkey, 0, 16);
+        try {
+            ecipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(xkey, "AES"), paramSpec);
+        } catch (InvalidKeyException ex) {
+            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, null, ex);
+            System.exit(1);
+        } catch (InvalidAlgorithmParameterException ex) {
+            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, null, ex);
+            System.exit(1);
+        }
+
+        CipherOutputStream cout = new CipherOutputStream(sout, ecipher);
+        ObjectOutputStream oout = new ObjectOutputStream(cout);
+
+        oout.writeInt(docm.caretPosition);
+        oout.writeUTF(docm.filename);
+        oout.writeObject(docm.saveHistory);
+        oout.writeUTF(tp.getText());
+
+        oout.close();
+        cout.close();
         sout.close();
         fout.close();
         return true;

@@ -13,4 +13,9 @@ import java.io.Serializable;
 public class SaveMetadata implements Serializable {
     public long     timestamp;
     public String   username;
+
+    public SaveMetadata(long timestamp, String username) {
+        this.timestamp = timestamp;
+        this.username = username;
+    }
 }
