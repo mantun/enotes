@@ -11,8 +11,18 @@
 
 package enotes;
 
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
 import javax.swing.event.CaretEvent;
 import javax.swing.event.CaretListener;
+import javax.swing.filechooser.FileFilter;
 import javax.swing.text.Document;
 import javax.swing.text.Element;
 
@@ -21,6 +31,10 @@ import javax.swing.text.Element;
  * @author ivoras
  */
 public class MainForm extends javax.swing.JFrame {
+
+    static final int OPT_SAVE = 1;
+    static final int OPT_NOSAVE = 2;
+    static final int OPT_CANCEL = 3;
 
     private DocMetadata docm = new DocMetadata();
     int tp_line, tp_col;
@@ -165,6 +179,8 @@ public class MainForm extends javax.swing.JFrame {
     }//GEN-LAST:event_formWindowClosing
 
     private void miNewActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_miNewActionPerformed
+        if (checkSave() == OPT_CANCEL)
+            return;
         tp.setText("");
         docm = new DocMetadata();
         updateTitle();
@@ -211,8 +227,9 @@ public class MainForm extends javax.swing.JFrame {
 
 
     private boolean canExit() {
-        return true;
+        return checkSave() != OPT_CANCEL;
     }
+    
 
     private void updateTitle() {
         String fn = docm.filename;
@@ -223,8 +240,91 @@ public class MainForm extends javax.swing.JFrame {
         this.setTitle(fn + " - Encrypted Notepad");
     }
 
+
     private void updateCaretStatus() {
         docm.caretPosition = tp.getCaretPosition();
-        lbCaret.setText(String.format("%d:%s", tp_line, tp_col));
+        lbCaret.setText(String.format("L:%d C:%s", tp_line, tp_col));
+    }
+
+
+    /**
+     * Returns true if the document was saved or the user said he doesn't want
+     * to save it.
+     *
+     * @return
+     */
+    private int checkSave() {
+        if (!docm.modified)
+            return OPT_NOSAVE;
+
+        int opt = JOptionPane.showConfirmDialog(this, "Do you want to save the file "+docm.filename, "Save file?", 
+                JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
+        if (opt == JOptionPane.CANCEL_OPTION)
+            return OPT_CANCEL;
+        if (opt == JOptionPane.NO_OPTION)
+            return OPT_NOSAVE;
+
+        JFileChooser fch = new JFileChooser();
+        fch.addChoosableFileFilter(new FileFilter() {
+            public boolean accept(File pathname) {
+                String name = pathname.getName().toLowerCase();
+                return name.endsWith(".etxt");
+            }
+            @Override
+            public String getDescription() {
+                return "Encrypted Notepad files (*.etxt)";
+            }
+        });
+        fch.addChoosableFileFilter(new FileFilter() {
+            @Override
+            public boolean accept(File f) {
+                String name = f.getName().toLowerCase();
+                return name.endsWith(".txt");
+            }
+            @Override
+            public String getDescription() {
+                return "Plain text files (*.txt)";
+            }
+        });
+        fch.addChoosableFileFilter(new FileFilter() {
+            @Override
+            public boolean accept(File f) {
+                return true;
+            }
+            @Override
+            public String getDescription() {
+                return "All files (*.*)";
+            }
+        });
+
+        int ret = fch.showSaveDialog(this);
+        if (ret == JFileChooser.APPROVE_OPTION) {
+            try {
+                return doSave(fch.getSelectedFile()) ? OPT_SAVE : OPT_CANCEL;
+            } catch (FileNotFoundException ex) {
+                JOptionPane.showMessageDialog(this, ex.getMessage());
+                Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, ex.getMessage(), ex);
+                return OPT_CANCEL;
+            } catch (IOException ex) {
+                JOptionPane.showMessageDialog(this, ex.getMessage());
+                Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, ex.getMessage(), ex);
+                return OPT_CANCEL;
+            }
+        } else
+            return OPT_NOSAVE;
+    }
+
+
+    private boolean doSave(File f) throws FileNotFoundException, IOException {
+        assert(docm.key != null);
+        
+        FileOutputStream fout = new FileOutputStream(f);
+        BufferedOutputStream sout = new BufferedOutputStream(fout);
+
+        sout.write(DocMetadata.SIGNATURE);
+
+        sout.close();
+        fout.close();
+        return true;
     }
 }

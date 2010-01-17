@@ -21,6 +21,7 @@ public class Main {
         } catch (Exception e) {}
 
         MainForm mf = new MainForm();
+        mf.setSize(800, 550);
         mf.setLocationRelativeTo(null);
         mf.setVisible(true);
 
