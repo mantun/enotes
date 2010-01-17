@@ -1,6 +1,8 @@
 /*
  * (c) 2009. Ivan Voras <ivoras@fer.hr>
+ * Released under the 2-clause BSDL.
  */
+
 
 package enotes;
 

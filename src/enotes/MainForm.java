@@ -1,5 +1,6 @@
 /*
  * (c) 2009. Ivan Voras <ivoras@fer.hr>
+ * Released under the 2-clause BSDL.
  */
 
 
@@ -13,7 +14,6 @@ package enotes;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -34,7 +34,6 @@ import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
 import javax.crypto.CipherOutputStream;
 import javax.crypto.NoSuchPaddingException;
-import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import javax.swing.JFileChooser;
@@ -63,6 +62,7 @@ public class MainForm extends javax.swing.JFrame {
     static final String CRYPTO_ALG = "AES";
 
     private DocMetadata docm = new DocMetadata();
+    private WordSearcher searcher;
     int tp_line, tp_col;
 
     /** Creates new form fmain */
@@ -80,6 +80,7 @@ public class MainForm extends javax.swing.JFrame {
             }
           } );
         updateCaretStatus();
+        searcher = new WordSearcher(tp);
     }
 
     /** This method is called from within the constructor to
@@ -95,7 +96,7 @@ public class MainForm extends javax.swing.JFrame {
         lbCaret = new javax.swing.JLabel();
         jPanel2 = new javax.swing.JPanel();
         tfFind = new javax.swing.JTextField();
-        jButton1 = new javax.swing.JButton();
+        btFind = new javax.swing.JButton();
         jScrollPane1 = new javax.swing.JScrollPane();
         tp = new javax.swing.JTextPane();
         jMenuBar1 = new javax.swing.JMenuBar();
@@ -107,6 +108,9 @@ public class MainForm extends javax.swing.JFrame {
         jSeparator1 = new javax.swing.JSeparator();
         miExit = new javax.swing.JMenuItem();
         jMenu2 = new javax.swing.JMenu();
+        miFind = new javax.swing.JMenuItem();
+        jMenu3 = new javax.swing.JMenu();
+        miAbout = new javax.swing.JMenuItem();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE);
         setTitle("Encrypted Notes");
@@ -137,10 +141,21 @@ public class MainForm extends javax.swing.JFrame {
                 tfFindFocusLost(evt);
             }
         });
+        tfFind.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyReleased(java.awt.event.KeyEvent evt) {
+                tfFindKeyReleased(evt);
+            }
+        });
         jPanel2.add(tfFind, java.awt.BorderLayout.CENTER);
 
-        jButton1.setText("Find");
-        jPanel2.add(jButton1, java.awt.BorderLayout.EAST);
+        btFind.setText("Find");
+        btFind.setFocusable(false);
+        btFind.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btFindActionPerformed(evt);
+            }
+        });
+        jPanel2.add(btFind, java.awt.BorderLayout.EAST);
 
         jPanel1.add(jPanel2, java.awt.BorderLayout.EAST);
 
@@ -215,7 +230,29 @@ public class MainForm extends javax.swing.JFrame {
         jMenuBar1.add(jMenu1);
 
         jMenu2.setText("Edit");
+
+        miFind.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F, java.awt.event.InputEvent.CTRL_MASK));
+        miFind.setText("Find...");
+        miFind.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                miFindActionPerformed(evt);
+            }
+        });
+        jMenu2.add(miFind);
+
         jMenuBar1.add(jMenu2);
+
+        jMenu3.setText("Help");
+
+        miAbout.setText("About");
+        miAbout.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                miAboutActionPerformed(evt);
+            }
+        });
+        jMenu3.add(miAbout);
+
+        jMenuBar1.add(jMenu3);
 
         setJMenuBar(jMenuBar1);
 
@@ -283,24 +320,47 @@ public class MainForm extends javax.swing.JFrame {
             tfFind.setText("Find...");
             tfFind.setForeground(java.awt.SystemColor.inactiveCaption);
         }
+        searcher.removeHighlights();
     }//GEN-LAST:event_tfFindFocusLost
 
     private void miOpenActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_miOpenActionPerformed
         openFile();
     }//GEN-LAST:event_miOpenActionPerformed
 
+    private void miFindActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_miFindActionPerformed
+        tfFind.requestFocus();
+    }//GEN-LAST:event_miFindActionPerformed
+
+    private void tfFindKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_tfFindKeyReleased
+        if (evt.getKeyChar() == 10 ) {
+            doSearch();
+            evt.consume();
+        }
+    }//GEN-LAST:event_tfFindKeyReleased
+
+    private void btFindActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btFindActionPerformed
+        doSearch();
+    }//GEN-LAST:event_btFindActionPerformed
+
+    private void miAboutActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_miAboutActionPerformed
+        JOptionPane.showMessageDialog(this, "Encrypted Notepad\n(c) 2010. Ivan Voras <ivoras@gmail.com>\nReleased under the BSD License\nProject web: http://sourceforge.net/projects/enotes");
+    }//GEN-LAST:event_miAboutActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton jButton1;
+    private javax.swing.JButton btFind;
     private javax.swing.JMenu jMenu1;
     private javax.swing.JMenu jMenu2;
+    private javax.swing.JMenu jMenu3;
     private javax.swing.JMenuBar jMenuBar1;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JSeparator jSeparator1;
     private javax.swing.JLabel lbCaret;
+    private javax.swing.JMenuItem miAbout;
     private javax.swing.JMenuItem miExit;
+    private javax.swing.JMenuItem miFind;
     private javax.swing.JMenuItem miNew;
     private javax.swing.JMenuItem miOpen;
     private javax.swing.JMenuItem miSave;
@@ -557,6 +617,8 @@ public class MainForm extends javax.swing.JFrame {
             return false;
         }
         byte ver_minor = (byte) bin.read(); /* ignore it */
+        byte[] pwdhash = new byte[2];
+        bin.read(pwdhash);
 
         DocMetadata newdocm = new DocMetadata();
         while (true) {
@@ -565,8 +627,6 @@ public class MainForm extends javax.swing.JFrame {
                 return false;
             newdocm.key = Util.sha1hash(pwd);
 
-            byte[] pwdhash = new byte[2];
-            bin.read(pwdhash);
             equal = true;
             for (int i = 0; i < pwdhash.length; i++)
                 if (pwdhash[i] != newdocm.key[newdocm.key.length-3+i])
@@ -622,5 +682,13 @@ public class MainForm extends javax.swing.JFrame {
         updateTitle();
         
         return true;
+    }
+
+    private void doSearch() {
+        String findText = tfFind.getText();
+        if (findText.length() != 0) {
+            if (searcher.search(findText) == -1)
+                JOptionPane.showMessageDialog(this, "Not found: "+findText);
+        }
     }
 }
