@@ -12,8 +12,12 @@ import java.util.ArrayList;
  */
 public class DocMetadata {
 
+    static final byte[] SIGNATURE = { 0x00, (byte)0xff, (byte)0xed, (byte)0xed };
+
     public ArrayList<SaveMetadata> saveHistory = new ArrayList<SaveMetadata>();
     public boolean modified = false;
     public String filename;
     public int caretPosition;
+    public byte[] key;
+    
 }
