@@ -14,7 +14,7 @@ import javax.swing.UIManager;
  */
 public class Main {
 
-    static final String VERSION = "1.0beta3";
+    static final String VERSION = "1.0beta4";
 
     /**
      * @param args the command line arguments
