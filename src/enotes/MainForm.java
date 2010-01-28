@@ -426,6 +426,8 @@ public class MainForm extends javax.swing.JFrame {
             fch.addChoosableFileFilter(new FileFilter() {
                 @Override
                 public boolean accept(File f) {
+                    if (f.isDirectory())
+                        return true;
                     String name = f.getName().toLowerCase();
                     return name.endsWith(".txt");
                 }
@@ -435,8 +437,10 @@ public class MainForm extends javax.swing.JFrame {
                 }
             });
             fch.addChoosableFileFilter(new FileFilter() {
-                public boolean accept(File pathname) {
-                    String name = pathname.getName().toLowerCase();
+                public boolean accept(File f) {
+                    if (f.isDirectory())
+                        return true;
+                    String name = f.getName().toLowerCase();
                     return name.endsWith(".etxt");
                 }
                 @Override
@@ -566,6 +570,8 @@ public class MainForm extends javax.swing.JFrame {
         fch.addChoosableFileFilter(new FileFilter() {
             @Override
             public boolean accept(File f) {
+                if (f.isDirectory())
+                    return true;
                 String name = f.getName().toLowerCase();
                 return name.endsWith(".txt");
             }
@@ -575,8 +581,10 @@ public class MainForm extends javax.swing.JFrame {
             }
         });
         fch.addChoosableFileFilter(new FileFilter() {
-            public boolean accept(File pathname) {
-                String name = pathname.getName().toLowerCase();
+            public boolean accept(File f) {
+                if (f.isDirectory())
+                    return true;
+                String name = f.getName().toLowerCase();
                 return name.endsWith(".etxt");
             }
             @Override
