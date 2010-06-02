@@ -15,6 +15,7 @@ package enotes;
 import enotes.doc.DocMetadata;
 import enotes.doc.DocException;
 import enotes.doc.Doc;
+import enotes.doc.DocPasswordException;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -396,7 +397,7 @@ public class MainForm extends javax.swing.JFrame {
             String pwd = PasswordDialog.getPassword();
             if (pwd == null)
                 return OPT_CANCEL;
-            docm.key = Util.sha1hash(pwd);
+            docm.setKey(pwd);
         }
 
         File fSave = null;
@@ -504,21 +505,30 @@ public class MainForm extends javax.swing.JFrame {
             return false;
 
         Doc doc = new Doc();
-        try {
-            String pwd = PasswordDialog.getPassword();
-            doc.doOpen(fOpen, pwd);
-        } catch (DocException ex) {
-            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, null, ex);
-            JOptionPane.showMessageDialog(this, ex.getMessage());
-            return false;
-        } catch (FileNotFoundException ex) {
-            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, ex.getMessage(), ex);
-            JOptionPane.showMessageDialog(this, ex.getMessage());
-            return false;
-        } catch (IOException ex) {
-            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, ex.getMessage(), ex);
-            JOptionPane.showMessageDialog(this, "IOException: "+ex.getMessage());
-            return false;
+        while (true) {
+            try {
+                String pwd = PasswordDialog.getPassword();
+                if (pwd == null)
+                    return false;
+                if (doc.doOpen(fOpen, pwd))
+                    break;
+                else
+                    return false;
+            } catch (DocPasswordException ex) {
+                continue;
+            } catch (DocException ex) {
+                Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, null, ex);
+                JOptionPane.showMessageDialog(this, ex.getMessage());
+                return false;
+            } catch (FileNotFoundException ex) {
+                Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, ex.getMessage(), ex);
+                JOptionPane.showMessageDialog(this, ex.getMessage());
+                return false;
+            } catch (IOException ex) {
+                Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, ex.getMessage(), ex);
+                JOptionPane.showMessageDialog(this, "IOException: "+ex.getMessage());
+                return false;
+            }
         }
 
         docm = doc.getDocMetadata();

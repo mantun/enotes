@@ -7,7 +7,6 @@ package enotes.doc;
 
 import enotes.MainForm;
 import enotes.SaveMetadata;
-import enotes.Util;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
@@ -91,7 +90,6 @@ public class Doc {
         bout.write(DocMetadata.SIGNATURE);
         bout.write(DocMetadata.VERSION_FORMAT);
         bout.write(DocMetadata.VERSION_MINOR);
-        bout.write(docm.key, docm.key.length-3, 2);
 
         byte[] iv = new byte[16];
         try {
@@ -102,6 +100,9 @@ public class Doc {
             System.exit(1);
         }
 
+        byte[] keyHash = Util.sha1hash(Util.concat(docm.key, iv));
+
+        bout.write(keyHash, 0, 2); /* Save password hash */
         bout.write(iv);
 
         AlgorithmParameterSpec paramSpec = new IvParameterSpec(iv);
@@ -149,7 +150,7 @@ public class Doc {
      * @throws FileNotFoundException
      * @throws IOException
      */
-    public boolean doOpen(File fOpen, String pwd) throws FileNotFoundException, IOException, DocException {
+    public boolean doOpen(File fOpen, String pwd) throws FileNotFoundException, IOException, DocException, DocPasswordException {
         FileInputStream fin = new FileInputStream(fOpen);
         BufferedInputStream bin = new BufferedInputStream(fin);
 
@@ -164,29 +165,30 @@ public class Doc {
         byte ver_format = (byte) bin.read();
         if (ver_format > DocMetadata.VERSION_FORMAT)
             throw new DocException("File is a Encrypted Notepad file but cannot be opened by this version of the program: "+fOpen.getAbsolutePath());
-        byte ver_minor = (byte) bin.read(); /* ignore it */
+        byte ver_minor = (byte) bin.read();
         byte[] pwdhash = new byte[2];
         bin.read(pwdhash);
-
-        DocMetadata newdocm = new DocMetadata();
-        while (true) {
-            if (pwd == null)
-                return false;
-            newdocm.key = Util.sha1hash(pwd);
-
-            equal = true;
-            for (int i = 0; i < pwdhash.length; i++)
-                if (pwdhash[i] != newdocm.key[newdocm.key.length-3+i])
-                    equal = false;
-
-            if (equal)
-                break;
-            else
-                throw new DocException("Invalid password!");
-        }
-
         byte[] iv = new byte[16];
         bin.read(iv);
+
+        DocMetadata newdocm = new DocMetadata();
+        newdocm.key = Util.sha1hash(pwd);
+
+        if (ver_minor == 0) {
+            equal = true;
+            for (int i = 0; i < pwdhash.length; i++)
+                if (pwdhash[i] != newdocm.key[newdocm.key.length-3+i]) {
+                    equal = false;
+                    break;
+                }
+        } else if (ver_minor == 1) {
+            byte[] keyHash = Util.sha1hash(Util.concat(newdocm.key, iv));
+            equal = keyHash[0] == pwdhash[0] && keyHash[1] == pwdhash[1];
+        } else
+            throw new DocException("Cannot read document with ver_minor="+ver_minor);
+
+        if (!equal)
+            throw new DocPasswordException("Invalid password!");
 
         AlgorithmParameterSpec paramSpec = new IvParameterSpec(iv);
         Cipher dcipher = null;
