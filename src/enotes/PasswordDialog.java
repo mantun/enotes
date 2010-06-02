@@ -1,5 +1,5 @@
 /*
- * (c) 2009. Ivan Voras <ivoras@fer.hr>
+ * (c) 2009.-2010. Ivan Voras <ivoras@fer.hr>
  * Released under the 2-clause BSDL.
  */
 
@@ -12,6 +12,7 @@
 
 package enotes;
 
+import java.awt.event.KeyEvent;
 import javax.swing.JOptionPane;
 
 /**
@@ -49,6 +50,12 @@ public class PasswordDialog extends javax.swing.JDialog {
         jLabel1.setText("Password:");
 
         jLabel2.setText("Confirm password:");
+
+        pwf2.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyReleased(java.awt.event.KeyEvent evt) {
+                pwf2KeyReleased(evt);
+            }
+        });
 
         jButton1.setText("OK");
         jButton1.addActionListener(new java.awt.event.ActionListener() {
@@ -113,6 +120,15 @@ public class PasswordDialog extends javax.swing.JDialog {
     }//GEN-LAST:event_jButton2ActionPerformed
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+        clickOk();
+    }//GEN-LAST:event_jButton1ActionPerformed
+
+    private void pwf2KeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_pwf2KeyReleased
+        if (evt.getKeyCode() == KeyEvent.VK_ENTER)
+            clickOk();
+    }//GEN-LAST:event_pwf2KeyReleased
+
+    private void clickOk() {
         String p1 = new String(pwf1.getPassword());
         String p2 = new String(pwf2.getPassword());
         if (!p1.equals(p2)) {
@@ -121,18 +137,8 @@ public class PasswordDialog extends javax.swing.JDialog {
         }
         pwd = p1;
         this.setVisible(false);
-    }//GEN-LAST:event_jButton1ActionPerformed
-
-    /**
-    * @param args the command line arguments
-    */
-    public static void main(String args[]) {
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                new PasswordDialog().setVisible(true);
-            }
-        });
     }
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButton1;
