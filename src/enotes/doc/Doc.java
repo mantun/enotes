@@ -3,8 +3,11 @@
  * Released under the 2-clause BSDL.
  */
 
-package enotes;
+package enotes.doc;
 
+import enotes.MainForm;
+import enotes.SaveMetadata;
+import enotes.Util;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
@@ -38,10 +41,10 @@ import javax.crypto.spec.SecretKeySpec;
 public class Doc {
 
     /** Crypto mode to use while writing the file */
-    static final String CRYPTO_MODE = "AES/CBC/PKCS5Padding";
+    public static final String CRYPTO_MODE = "AES/CBC/PKCS5Padding";
     
     /** The short name of the crypt algorithm used on the files */
-    static final String CRYPTO_ALG = "AES";
+    public static final String CRYPTO_ALG = "AES";
     
 
     private String text;

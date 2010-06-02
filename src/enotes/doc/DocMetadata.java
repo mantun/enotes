@@ -3,8 +3,9 @@
  * Released under the 2-clause BSDL.
  */
 
-package enotes;
+package enotes.doc;
 
+import enotes.SaveMetadata;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
