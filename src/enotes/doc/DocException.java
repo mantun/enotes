@@ -3,7 +3,7 @@
  * Released under the 2-clause BSDL.
  */
 
-package enotes;
+package enotes.doc;
 
 /**
  *

@@ -12,6 +12,9 @@
 
 package enotes;
 
+import enotes.doc.DocMetadata;
+import enotes.doc.DocException;
+import enotes.doc.Doc;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
