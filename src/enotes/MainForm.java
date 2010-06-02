@@ -12,32 +12,11 @@
 
 package enotes;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
-import java.security.spec.AlgorithmParameterSpec;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
-import javax.crypto.Cipher;
-import javax.crypto.CipherInputStream;
-import javax.crypto.CipherOutputStream;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.event.CaretEvent;
@@ -59,9 +38,6 @@ public class MainForm extends javax.swing.JFrame {
     static final int WHYSAVE_SAVE = 1;
     static final int WHYSAVE_SAVEAS = 2;
     static final int WHYSAVE_CLOSE = 3;
-
-    static final String CRYPTO_MODE = "AES/CBC/PKCS5Padding";
-    static final String CRYPTO_ALG = "AES";
 
     private DocMetadata docm = new DocMetadata();
     private WordSearcher searcher;
@@ -346,7 +322,7 @@ public class MainForm extends javax.swing.JFrame {
 
     private void miAboutActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_miAboutActionPerformed
         JOptionPane.showMessageDialog(this, "Encrypted Notepad "+Main.VERSION+"\n(c) 2010. Ivan Voras <ivoras@gmail.com>\n"+
-                "Released under the BSD License\nProject web: http://sourceforge.net/projects/enotes\n\nUsing "+CRYPTO_MODE);
+                "Released under the BSD License\nProject web: http://sourceforge.net/projects/enotes\n\nUsing "+Doc.CRYPTO_MODE);
     }//GEN-LAST:event_miAboutActionPerformed
 
 
@@ -460,7 +436,8 @@ public class MainForm extends javax.swing.JFrame {
         
         docm.filename = fSave.getAbsolutePath();
         try {
-            boolean saved = doSave(fSave);
+            Doc doc = new Doc(tp.getText(), docm);
+            boolean saved = doc.doSave(fSave);
             if (saved) {
                 docm.modified = false;
                 updateTitle();
@@ -476,84 +453,6 @@ public class MainForm extends javax.swing.JFrame {
             Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, ex.getMessage(), ex);
             return OPT_CANCEL;
         }
-    }
-
-
-    /**
-     * Saves the currently edited document to the given file.
-     * 
-     * @param f
-     * @return
-     * @throws FileNotFoundException
-     * @throws IOException
-     */
-    private boolean doSave(File f) throws FileNotFoundException, IOException {
-        assert(docm.key != null);
-
-        String current_user = System.getProperty("user.name");
-        if (docm.saveHistory.size() != 0) {
-            SaveMetadata smd = docm.saveHistory.get(docm.saveHistory.size()-1);
-            if (!smd.username.equalsIgnoreCase(current_user)) {
-                smd = new SaveMetadata(System.currentTimeMillis(), current_user);
-                docm.saveHistory.add(smd);
-            } else
-                smd.timestamp = System.currentTimeMillis();
-        } else
-            docm.saveHistory.add(new SaveMetadata(System.currentTimeMillis(), current_user));
-        
-        FileOutputStream fout = new FileOutputStream(f);
-        BufferedOutputStream bout = new BufferedOutputStream(fout);
-
-        bout.write(DocMetadata.SIGNATURE);
-        bout.write(DocMetadata.VERSION_FORMAT);
-        bout.write(DocMetadata.VERSION_MINOR);
-        bout.write(docm.key, docm.key.length-3, 2);
-
-        byte[] iv = new byte[16];
-        try {
-            SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
-            random.nextBytes(iv);
-        } catch (NoSuchAlgorithmException ex) {
-            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, null, ex);
-            System.exit(1);
-        }
-
-        bout.write(iv);
-
-        AlgorithmParameterSpec paramSpec = new IvParameterSpec(iv);
-        Cipher ecipher = null;
-        try {
-            ecipher = Cipher.getInstance(CRYPTO_MODE);
-        } catch (NoSuchAlgorithmException ex) {
-            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, null, ex);
-            System.exit(1);
-        } catch (NoSuchPaddingException ex) {
-            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, null, ex);
-            System.exit(1);
-        }
-        try {
-            ecipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(docm.key, 0, 16, CRYPTO_ALG), paramSpec);
-        } catch (InvalidKeyException ex) {
-            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, null, ex);
-            System.exit(1);
-        } catch (InvalidAlgorithmParameterException ex) {
-            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, null, ex);
-            System.exit(1);
-        }
-
-        CipherOutputStream cout = new CipherOutputStream(bout, ecipher);
-        GZIPOutputStream zout = new GZIPOutputStream(cout);
-        DataOutputStream dout = new DataOutputStream(zout);
-
-        docm.saveMetadata(dout);
-        dout.writeUTF(tp.getText());
-
-        dout.close();
-        zout.close();
-        cout.close();
-        bout.close();
-        fout.close();
-        return true;
     }
 
 
@@ -601,8 +500,14 @@ public class MainForm extends javax.swing.JFrame {
         else
             return false;
 
+        Doc doc = new Doc();
         try {
-            doOpen(fOpen);
+            String pwd = PasswordDialog.getPassword();
+            doc.doOpen(fOpen, pwd);
+        } catch (DocException ex) {
+            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, null, ex);
+            JOptionPane.showMessageDialog(this, ex.getMessage());
+            return false;
         } catch (FileNotFoundException ex) {
             Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, ex.getMessage(), ex);
             JOptionPane.showMessageDialog(this, ex.getMessage());
@@ -612,102 +517,12 @@ public class MainForm extends javax.swing.JFrame {
             JOptionPane.showMessageDialog(this, "IOException: "+ex.getMessage());
             return false;
         }
-        return true;
-    }
 
-
-    /**
-     * Opens the specified file to be the currently edited document.
-     * 
-     * @param fOpen
-     * @return
-     * @throws FileNotFoundException
-     * @throws IOException
-     */
-    private boolean doOpen(File fOpen) throws FileNotFoundException, IOException {
-        FileInputStream fin = new FileInputStream(fOpen);
-        BufferedInputStream bin = new BufferedInputStream(fin);
-
-        byte[] sig = new byte[DocMetadata.SIGNATURE.length];
-        bin.read(sig);
-        boolean equal = true;
-        for (int i = 0; i < sig.length; i++)
-            if (sig[i] != DocMetadata.SIGNATURE[i])
-                equal = false;
-        if (!equal) {
-            JOptionPane.showMessageDialog(this, "File is not a valid Encrypted Notepad file: "+fOpen.getAbsolutePath());
-            return false;
-        }
-        byte ver_format = (byte) bin.read();
-        if (ver_format > DocMetadata.VERSION_FORMAT) {
-            JOptionPane.showMessageDialog(this, "File is a Encrypted Notepad file but cannot be opened by this version of the program: "+fOpen.getAbsolutePath());
-            return false;
-        }
-        byte ver_minor = (byte) bin.read(); /* ignore it */
-        byte[] pwdhash = new byte[2];
-        bin.read(pwdhash);
-
-        DocMetadata newdocm = new DocMetadata();
-        while (true) {
-            String pwd = PasswordDialog.getPassword();
-            if (pwd == null)
-                return false;
-            newdocm.key = Util.sha1hash(pwd);
-
-            equal = true;
-            for (int i = 0; i < pwdhash.length; i++)
-                if (pwdhash[i] != newdocm.key[newdocm.key.length-3+i])
-                    equal = false;
-
-            if (equal)
-                break;
-            else
-                JOptionPane.showMessageDialog(this, "Invalid password!");
-        }
-        
-        byte[] iv = new byte[16];
-        bin.read(iv);
-
-        AlgorithmParameterSpec paramSpec = new IvParameterSpec(iv);
-        Cipher dcipher = null;
-        try {
-            dcipher = Cipher.getInstance(CRYPTO_MODE);
-        } catch (NoSuchAlgorithmException ex) {
-            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, null, ex);
-            System.exit(1);
-        } catch (NoSuchPaddingException ex) {
-            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, null, ex);
-            System.exit(1);
-        }
-        try {
-            dcipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(newdocm.key, 0, 16, CRYPTO_ALG), paramSpec);
-        } catch (InvalidKeyException ex) {
-            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, null, ex);
-            System.exit(1);
-        } catch (InvalidAlgorithmParameterException ex) {
-            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, null, ex);
-            System.exit(1);
-        }
-
-        CipherInputStream cin = new CipherInputStream(bin, dcipher);
-        GZIPInputStream zin = new GZIPInputStream(cin);
-        DataInputStream din = new DataInputStream(zin);
-        
-        newdocm.loadMetadata(din);
-        String text = din.readUTF();
-
-        din.close();
-        zin.close();
-        cin.close();
-        bin.close();
-        fin.close();
-
-        tp.setText(text);
-        tp.setCaretPosition(newdocm.caretPosition);
-        docm = newdocm;
-        docm.filename = fOpen.getAbsolutePath();
+        docm = doc.getDocMetadata();
+        tp.setText(doc.getText());
+        tp.setCaretPosition(docm.caretPosition);
         updateTitle();
-        
+
         return true;
     }
 
