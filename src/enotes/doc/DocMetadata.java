@@ -19,7 +19,12 @@ public class DocMetadata {
 
     static final byte[] SIGNATURE = { 0x00, (byte)0xff, (byte)0xed, (byte)0xed };
     static final byte VERSION_FORMAT = 1;
-    static final byte VERSION_MINOR = 0;
+
+    /* Metadata format history:
+     * Version 1.0: key hash is last 2 bytes of SHA1 hash of the password
+     * Version 1.1: key hash is first 2 bytes of SHA1(SHA1(password) + IV)
+     */
+    static final byte VERSION_MINOR = 1;
 
     public ArrayList<SaveMetadata> saveHistory = new ArrayList<SaveMetadata>();
     public boolean modified = false;
@@ -44,6 +49,10 @@ public class DocMetadata {
         saveHistory = new ArrayList<SaveMetadata>();
         for (int i = 0; i < nSave; i++)
             saveHistory.add(new SaveMetadata(ois.readLong(), ois.readUTF()));
+    }
+
+    public void setKey(String pwd) {
+        key = Util.sha1hash(pwd);
     }
 
 }
