@@ -1,5 +1,5 @@
 /*
- * (c) 2009. Ivan Voras <ivoras@fer.hr>
+ * (c) 2009.-2011. Ivan Voras <ivoras@fer.hr>
  * Released under the 2-clause BSDL.
  */
 
@@ -504,6 +504,14 @@ public class MainForm extends javax.swing.JFrame {
         else
             return false;
 
+        return internalOpenFile(fOpen);
+    }
+
+
+    /*
+     * Open a file that's certainly there.
+     */
+    boolean internalOpenFile(File fOpen) {
         Doc doc = new Doc();
         while (true) {
             try {
@@ -535,7 +543,6 @@ public class MainForm extends javax.swing.JFrame {
         tp.setText(doc.getText());
         tp.setCaretPosition(docm.caretPosition);
         updateTitle();
-
         return true;
     }
 
