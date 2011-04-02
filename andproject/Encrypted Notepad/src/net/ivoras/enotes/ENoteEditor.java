@@ -64,7 +64,7 @@ public class ENoteEditor extends Activity {
 			loadPrefs();
 		if (fileExists(STATE_FILENAME) && !pref_paranoid) {
 			loadState();
-			destroyState();
+			destroyStateFile();
 		}
 	}
 	
@@ -116,11 +116,11 @@ public class ENoteEditor extends Activity {
 			return true;
 		case R.id.menu_open:
 			openFile();
-			destroyState();
+			destroyStateFile();
 			return true;
 		case R.id.menu_save_as:
 			saveFile();
-			destroyState();
+			destroyStateFile();
 			return true;
 		case R.id.menu_new:
 			newFile();
@@ -150,7 +150,7 @@ public class ENoteEditor extends Activity {
 		super.onResume();
 		if (fileExists(STATE_FILENAME)) {
 			loadState();
-			destroyState();
+			destroyStateFile();
 		}
 	}
 	
@@ -164,14 +164,8 @@ public class ENoteEditor extends Activity {
 	 * The problem: already saved files can be saved since we know both the
 	 * filename and the password. But new documents which are not yet saved
 	 * have no such data associated with them. We shall thus save these
-	 * documents in internal memory and hope it is secure enough. We must also
-	 * kill this saved data when we finally save the document. 
-	 */
-	
-	/*
-	 * TODO: state as map, need to save filename to open oncreate if not null
-	 * saveState() and loadState() save/load the internal editor state,
-	 * including its content, in the internal storage (as plaintext).
+	 * documents in internal memory in plaintext and hope it is secure enough.
+	 * We must also kill this saved data when we finally save the document. 
 	 */
 	private void saveState() throws IOException {
 		ObjectOutputStream oos = null;
@@ -193,6 +187,7 @@ public class ENoteEditor extends Activity {
 		System.err.println("-- saveState() finished");
 	}
 	
+	/* Loads editor state from the saved file */
 	@SuppressWarnings("unchecked")
 	private boolean loadState() {
 		System.err.println("-- loadState()");
@@ -223,8 +218,9 @@ public class ENoteEditor extends Activity {
 		return true;
 	}
 	
+	/* Destroys state file */
 	@SuppressWarnings("unchecked")
-	private void destroyState() {
+	private void destroyStateFile() {
 		if (!fileExists(STATE_FILENAME))
 			return;
 		ObjectOutputStream oos = null;
@@ -238,6 +234,9 @@ public class ENoteEditor extends Activity {
 		}
 	}
 	
+	/* A very dumb function to check the existence of a files. There must
+	 * be a better way...
+	 */
 	private boolean fileExists(String name) {
 		String[] files = fileList();
 		for (int i = 0; i < files.length; i++)
@@ -246,17 +245,32 @@ public class ENoteEditor extends Activity {
 		return false;
 	}
 
+	
+	/*
+	 * TODO: Find out when exactly is this supposed to be called. The emulator
+	 * apparently doesn't in a consistent way, or at least doesn't pair it with
+	 * onRestoreInstanceState(). 
+	 */
 	public void onSaveInstanceState(Bundle b) {
+		System.err.println("-- onSaveInstanceState");
+		if (pref_paranoid) {
+			destroyStateFile();
+			return;
+		}
 		EditText et = (EditText) this.findViewById(R.id.main_text);
 		doc_metadata.caretPosition = et.getSelectionStart();
 		b.putString("text", et.getText().toString());
 		b.putSerializable("metadata", doc_metadata);
 		saveIfNeeded();
-		System.err.println("-- onSaveInstanceState");
 	}
 	
+	/*
+	 * See comment for onSaveInstanceState()
+	 */
 	public void onRestoreInstanceState(Bundle b) {
 		System.err.println("-- onRestoreInstanceState");
+		if (pref_paranoid)
+			return;
 		EditText et = (EditText) this.findViewById(R.id.main_text);
 		doc_metadata = (DocMetadata) b.getSerializable("metadata");
 		et.setText(b.getString("text"));

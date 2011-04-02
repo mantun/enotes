@@ -5,19 +5,21 @@
 
 package enotes.doc;
 
-import enotes.SaveMetadata;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 
 /**
  *
  * @author ivoras
  */
-public class DocMetadata {
+public class DocMetadata implements Serializable {
 
-    static final byte[] SIGNATURE = { 0x00, (byte)0xff, (byte)0xed, (byte)0xed };
+	private static final long serialVersionUID = 1L;
+	
+	static final byte[] SIGNATURE = { 0x00, (byte)0xff, (byte)0xed, (byte)0xed };
     static final byte VERSION_FORMAT = 1;
 
     /* Metadata format history:
