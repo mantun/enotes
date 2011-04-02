@@ -24,14 +24,14 @@ import enotes.doc.*;
 
 public class ENoteEditor extends Activity {
 	
-	private static final String version = "1.0beta";
+	private static final String version = "1.0beta6";
 
 	private DocMetadata doc_metadata = new DocMetadata();
 
 	private String doc_dir = "documents";
 	private static final String doc_ext = ".etxt";
 	private static final String STATE_FILENAME = "state";
-	private static final String PREFS_FILENAME = "preferences";
+	private static final String PREFS_FILENAME = "preferences.xls";
 	
 	private static final String PREF_PARANOID = "paranoid";
 	private boolean pref_paranoid = false;
@@ -60,12 +60,12 @@ public class ENoteEditor extends Activity {
 					int count) {
 			}
 		});
-		if (fileExists(STATE_FILENAME)) {
+		if (fileExists(PREFS_FILENAME))
+			loadPrefs();
+		if (fileExists(STATE_FILENAME) && !pref_paranoid) {
 			loadState();
 			destroyState();
 		}
-		if (fileExists(PREFS_FILENAME))
-			loadPrefs();
 	}
 	
 	/* Loads user preferences */
