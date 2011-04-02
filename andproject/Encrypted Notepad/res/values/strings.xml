@@ -7,12 +7,13 @@
     <string name="menu_new">New document</string>
     <string name="hello">Hello World, ENoteEditor!</string>
     <string name="app_name">Encrypted Notepad</string>
+    <string name="app_aname">EncryptedNotepad</string>
 	<string name="app_title">%s - Encrypted Notepad</string>
-	<string name="about_text">Encrypted Notepad %s is (c) 2010. Ivan Voras\n\nContact &amp; support:\nivoras@gmail.com\nhttp://www.sf.net/projects/enotes\n\nReleased under the BSDL.\n\nUsing %s</string>
+	<string name="about_text">Encrypted Notepad %1$s is (c) 2011. Ivan Voras\n\nContact &amp; support:\nivoras@gmail.com\nhttp://www.sf.net/projects/enotes\n\nReleased under the BSDL.\n\nUsing %2$s</string>
 	<string name="default_text">Type here...</string>
 	<string name="new_document">*new document*</string>
-	<string name="no_etxt_files">There are no *%s files in "%s"</string>
-	<string name="list_etxt_files">*%s files in "%s"</string>
+	<string name="no_etxt_files">There are no *%1$s files in "%2$s"</string>
+	<string name="list_etxt_files">*%1$s files in "%2$s"</string>
 	<string name="pwd_enter">Enter password:</string>
 	<string name="pwd_confirm">Confirm password:</string>
 	<string name="ask_filename">Enter filename:</string>
@@ -23,8 +24,8 @@
 	<string name="invalid_filename">Invalid filename!</string>
 	<string name="pwd_empty">The password cannot be empty!</string>
 	<string name="file_saved">File saved as &quot;%s&quot;</string>
-<string name="dlg_watchthis">Watch this space! Future versions of the app will introduce more customizable options!</string>
-<string name="cb_paranoid">Be paranoid about displaying plaintext</string>
-<string name="menu_options">Options...</string>
-<string name="dlg_prefs_title">Options</string>
+	<string name="dlg_watchthis">Watch this space! Future versions of the app will introduce more customizable options!</string>
+	<string name="cb_paranoid">Be paranoid about displaying plaintext</string>
+	<string name="menu_options">Options...</string>
+	<string name="dlg_prefs_title">Options</string>
 </resources>
