@@ -17,6 +17,8 @@ import android.widget.TextView;
 
 import java.io.*;
 import java.util.HashMap;
+import java.util.InvalidPropertiesFormatException;
+import java.util.Properties;
 
 import enotes.doc.*;
 
@@ -29,6 +31,10 @@ public class ENoteEditor extends Activity {
 	private String doc_dir = "documents";
 	private static final String doc_ext = ".etxt";
 	private static final String STATE_FILENAME = "state";
+	private static final String PREFS_FILENAME = "preferences";
+	
+	private static final String PREF_PARANOID = "paranoid";
+	private boolean pref_paranoid = false;
 	
 
 	/* # Called when the activity is first created. */
@@ -57,6 +63,42 @@ public class ENoteEditor extends Activity {
 		if (fileExists(STATE_FILENAME)) {
 			loadState();
 			destroyState();
+		}
+		if (fileExists(PREFS_FILENAME))
+			loadPrefs();
+	}
+	
+	/* Loads user preferences */
+	private void loadPrefs() {
+		try {
+			InputStream is = openFileInput(PREFS_FILENAME);
+			Properties p = new Properties();
+			p.loadFromXML(is);
+			if (p.getProperty(PREF_PARANOID) != null)
+				pref_paranoid = Boolean.parseBoolean(p.getProperty(PREF_PARANOID));
+			is.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (InvalidPropertiesFormatException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	/* Saves user preferences */
+	private void savePrefs() {
+		try {
+			OutputStream os = openFileOutput(PREFS_FILENAME, Context.MODE_PRIVATE);
+			Properties p = new Properties();
+			if (pref_paranoid)
+				p.setProperty(PREF_PARANOID, pref_paranoid ? "true" : "false");
+			p.storeToXML(os, "Encrypted Notepad properties");
+			os.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 
@@ -460,13 +502,14 @@ public class ENoteEditor extends Activity {
 		dlg.setTitle(R.string.dlg_prefs_title);
 		dlg.setCancelable(true);
 		
-		CheckBox cb_paranoid = (CheckBox) dlg.findViewById(R.id.dp_cb_paranoid);
-		cb_paranoid.setChecked(true);
+		final CheckBox cb_paranoid = (CheckBox) dlg.findViewById(R.id.dp_cb_paranoid);
+		cb_paranoid.setChecked(pref_paranoid);
 		
 		Button btn_ok = (Button)dlg.findViewById(R.id.dp_btn_ok);
 		btn_ok.setOnClickListener(new Button.OnClickListener() {
 			public void onClick(View v) {
-				
+				pref_paranoid = cb_paranoid.isChecked();
+				savePrefs();
 				dlg.dismiss();
 			}
 		});
