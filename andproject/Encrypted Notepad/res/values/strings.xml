@@ -25,7 +25,7 @@
 	<string name="pwd_empty">The password cannot be empty!</string>
 	<string name="file_saved">File saved as &quot;%s&quot;</string>
 	<string name="dlg_watchthis">Watch this space! Future versions of the app will introduce more customizable options!</string>
-	<string name="cb_paranoid">Be paranoid about displaying plaintext after app inactivity</string>
+	<string name="cb_paranoid">Be (more) paranoid about displaying text after app inactivity</string>
 	<string name="menu_options">Options...</string>
 	<string name="dlg_prefs_title">Options</string>
 </resources>
