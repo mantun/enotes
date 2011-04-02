@@ -5,17 +5,7 @@
 
 package enotes.doc;
 
-import enotes.MainForm;
-import enotes.SaveMetadata;
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -25,6 +15,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
+
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
 import javax.crypto.CipherOutputStream;
@@ -69,8 +60,9 @@ public class Doc {
      * @return
      * @throws FileNotFoundException
      * @throws IOException
+     * @throws DocPasswordException 
      */
-    public boolean doSave(File f) throws FileNotFoundException, IOException  {
+    public boolean doSave(File f) throws FileNotFoundException, IOException, DocPasswordException  {
         assert(docm.key != null);
 
         String current_user = System.getProperty("user.name");
@@ -84,6 +76,9 @@ public class Doc {
         } else
             docm.saveHistory.add(new SaveMetadata(System.currentTimeMillis(), current_user));
 
+        if (docm.key == null)
+        	throw new DocPasswordException("Key not set in DocMetadata");
+        
         FileOutputStream fout = new FileOutputStream(f);
         BufferedOutputStream bout = new BufferedOutputStream(fout);
 
@@ -96,7 +91,7 @@ public class Doc {
             SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
             random.nextBytes(iv);
         } catch (NoSuchAlgorithmException ex) {
-            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, ex);
             System.exit(1);
         }
 
@@ -110,19 +105,19 @@ public class Doc {
         try {
             ecipher = Cipher.getInstance(CRYPTO_MODE);
         } catch (NoSuchAlgorithmException ex) {
-            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, ex);
             System.exit(1);
         } catch (NoSuchPaddingException ex) {
-            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, ex);
             System.exit(1);
         }
         try {
             ecipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(docm.key, 0, 16, CRYPTO_ALG), paramSpec);
         } catch (InvalidKeyException ex) {
-            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, ex);
             System.exit(1);
         } catch (InvalidAlgorithmParameterException ex) {
-            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, ex);
             System.exit(1);
         }
 
@@ -134,10 +129,14 @@ public class Doc {
         dout.writeUTF(text);
 
         dout.close();
-        zout.close();
-        cout.close();
-        bout.close();
-        fout.close();
+        try {
+	        zout.close();
+	        cout.close();
+	        bout.close();
+	        fout.close();
+        } catch (IOException e) {
+        	e.printStackTrace();
+        }
         return true;
     }
 
@@ -195,19 +194,19 @@ public class Doc {
         try {
             dcipher = Cipher.getInstance(CRYPTO_MODE);
         } catch (NoSuchAlgorithmException ex) {
-            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, ex);
             System.exit(1);
         } catch (NoSuchPaddingException ex) {
-            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, ex);
             System.exit(1);
         }
         try {
             dcipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(newdocm.key, 0, 16, CRYPTO_ALG), paramSpec);
         } catch (InvalidKeyException ex) {
-            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, ex);
             System.exit(1);
         } catch (InvalidAlgorithmParameterException ex) {
-            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, ex);
             System.exit(1);
         }
 

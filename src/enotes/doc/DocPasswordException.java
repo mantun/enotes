@@ -12,6 +12,12 @@ package enotes.doc;
 public class DocPasswordException extends DocException {
 
     /**
+	 * 
+	 */
+	private static final long serialVersionUID = 8526674767186417815L;
+
+
+	/**
      * Creates a new instance of <code>DocPasswordException</code> without detail message.
      */
     public DocPasswordException() {

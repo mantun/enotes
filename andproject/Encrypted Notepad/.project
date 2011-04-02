@@ -30,4 +30,36 @@
 		<nature>com.android.ide.eclipse.adt.AndroidNature</nature>
 		<nature>org.eclipse.jdt.core.javanature</nature>
 	</natures>
+	<linkedResources>
+		<link>
+			<name>src/enotes/doc/Doc.java</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/src/enotes/doc/Doc.java</locationURI>
+		</link>
+		<link>
+			<name>src/enotes/doc/DocException.java</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/src/enotes/doc/DocException.java</locationURI>
+		</link>
+		<link>
+			<name>src/enotes/doc/DocMetadata.java</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/src/enotes/doc/DocMetadata.java</locationURI>
+		</link>
+		<link>
+			<name>src/enotes/doc/DocPasswordException.java</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/src/enotes/doc/DocPasswordException.java</locationURI>
+		</link>
+		<link>
+			<name>src/enotes/doc/SaveMetadata.java</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/src/enotes/doc/SaveMetadata.java</locationURI>
+		</link>
+		<link>
+			<name>src/enotes/doc/Util.java</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/src/enotes/doc/Util.java</locationURI>
+		</link>
+	</linkedResources>
 </projectDescription>
