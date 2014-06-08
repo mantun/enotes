@@ -17,16 +17,17 @@ import java.util.ArrayList;
  */
 public class DocMetadata implements Serializable {
 
-	private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 	
-	static final byte[] SIGNATURE = { 0x00, (byte)0xff, (byte)0xed, (byte)0xed };
+    static final byte[] SIGNATURE = { 0x00, (byte)0xff, (byte)0xed, (byte)0xed };
     static final byte VERSION_FORMAT = 1;
 
     /* Metadata format history:
      * Version 1.0: key hash is last 2 bytes of SHA1 hash of the password
      * Version 1.1: key hash is first 2 bytes of SHA1(SHA1(password) + IV)
+     * Version 1.2: support for > 64 KiB data
      */
-    static final byte VERSION_MINOR = 1;
+    static final byte VERSION_MINOR = 2;
 
     public ArrayList<SaveMetadata> saveHistory = new ArrayList<SaveMetadata>();
     public boolean modified = false;
