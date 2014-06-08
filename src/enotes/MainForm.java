@@ -452,7 +452,7 @@ public class MainForm extends javax.swing.JFrame {
             JOptionPane.showMessageDialog(this, ex.getMessage());
             Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, ex.getMessage(), ex);
             return OPT_CANCEL;
-        } catch (IOException ex) {
+        } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage());
             Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, ex.getMessage(), ex);
             return OPT_CANCEL;

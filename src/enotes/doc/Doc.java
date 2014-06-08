@@ -1,5 +1,5 @@
 /*
- * (c) 2009.-2010. Ivan Voras <ivoras@fer.hr>
+ * (c) 2009.-2014. Ivan Voras <ivoras@fer.hr>
  * Released under the 2-clause BSDL.
  */
 
@@ -126,7 +126,11 @@ public class Doc {
         DataOutputStream dout = new DataOutputStream(zout);
 
         docm.saveMetadata(dout);
-        dout.writeUTF(text);
+        byte[] ddata = text.getBytes("UTF-8");
+        dout.writeInt(ddata.length);
+        dout.write(ddata);
+        System.out.println("Written "+ ddata.length + " bytes");
+        //dout.writeUTF(text); // Java doesn't work with strings > 64 KiB :DD
 
         dout.close();
         try {
@@ -165,6 +169,8 @@ public class Doc {
         if (ver_format > DocMetadata.VERSION_FORMAT)
             throw new DocException("File is a Encrypted Notepad file but cannot be opened by this version of the program: "+fOpen.getAbsolutePath());
         byte ver_minor = (byte) bin.read();
+        if (ver_minor > DocMetadata.VERSION_MINOR)
+            throw new DocException("File format version is newer than this app version supports");
         byte[] pwdhash = new byte[2];
         bin.read(pwdhash);
         byte[] iv = new byte[16];
@@ -180,7 +186,7 @@ public class Doc {
                     equal = false;
                     break;
                 }
-        } else if (ver_minor == 1) {
+        } else if (ver_minor == 1 || ver_minor == 2) {
             byte[] keyHash = Util.sha1hash(Util.concat(newdocm.key, iv));
             equal = keyHash[0] == pwdhash[0] && keyHash[1] == pwdhash[1];
         } else
@@ -214,8 +220,21 @@ public class Doc {
         GZIPInputStream zin = new GZIPInputStream(cin);
         DataInputStream din = new DataInputStream(zin);
 
+        String newtext;
         newdocm.loadMetadata(din);
-        String newtext = din.readUTF();
+        if (ver_minor < 2)
+            newtext = din.readUTF();
+        else {
+            int len = din.readInt();
+            byte[] ddata = new byte[len];
+            int total_read = 0;
+            while (total_read < len) {
+                int nread = din.read(ddata, total_read, len-total_read);
+                total_read += nread;
+            }
+            System.out.println("Read "+ total_read + " bytes");
+            newtext = new String(ddata, "UTF-8");
+        }
 
         din.close();
         zin.close();
