@@ -25,25 +25,16 @@ class WordSearcher {
     // Search for a word and return the offset of the
     // first occurrence. Highlights are added for all
     // occurrences found.
-    public int search(String word) {
-        int firstOffset = -1;
-        Highlighter highlighter = comp.getHighlighter();
+    public int search(String word, int caretPosition) {
 
-        // Remove any existing highlights for last word
-        Highlighter.Highlight[] highlights = highlighter.getHighlights();
-        for (int i = 0; i < highlights.length; i++) {
-            Highlighter.Highlight h = highlights[i];
-            if (h.getPainter() instanceof UnderlineHighlighter.UnderlineHighlightPainter) {
-                highlighter.removeHighlight(h);
-            }
-        }
+        removeHighlights();
 
         if (word == null || word.equals("")) {
             return -1;
         }
-
+        
         // Look for the word we are given - insensitive search
-        String content = null;
+        String content;
         try {
             Document d = comp.getDocument();
             content = d.getText(0, d.getLength()).toLowerCase();
@@ -53,23 +44,29 @@ class WordSearcher {
         }
 
         word = word.toLowerCase();
-        int lastIndex = 0;
+        highlight(word, caretPosition, content);
+
+        int pos = content.indexOf(word, caretPosition);
+        if (pos == caretPosition) {
+            pos = content.indexOf(word, caretPosition + 1);
+        }
+        return pos;
+    }
+
+    private void highlight(String word, int caretPosition, String content) {
+        int lastIndex = caretPosition;
         int wordSize = word.length();
 
+        Highlighter highlighter = comp.getHighlighter();
         while ((lastIndex = content.indexOf(word, lastIndex)) != -1) {
             int endIndex = lastIndex + wordSize;
             try {
                 highlighter.addHighlight(lastIndex, endIndex, painter);
-            } catch (BadLocationException e) {
+            } catch (BadLocationException ignored) {
                 // Nothing to do
-            }
-            if (firstOffset == -1) {
-                firstOffset = lastIndex;
             }
             lastIndex = endIndex;
         }
-
-        return firstOffset;
     }
 
     public void removeHighlights() {
@@ -88,75 +85,3 @@ class WordSearcher {
     protected Highlighter.HighlightPainter painter;
 }
 
-class UnderlineHighlighter extends DefaultHighlighter {
-
-    public UnderlineHighlighter(Color c) {
-        painter = (c == null ? sharedPainter : new UnderlineHighlightPainter(c));
-    }
-
-    // Convenience method to add a highlight with
-    // the default painter.
-    public Object addHighlight(int p0, int p1) throws BadLocationException {
-        return addHighlight(p0, p1, painter);
-    }
-
-    @Override
-    public void setDrawsLayeredHighlights(boolean newValue) {
-        // Illegal if false - we only support layered highlights
-        if (newValue == false) {
-            throw new IllegalArgumentException(
-                    "UnderlineHighlighter only draws layered highlights");
-        }
-        super.setDrawsLayeredHighlights(true);
-    }
-
-    // Painter for underlined highlights
-    public static class UnderlineHighlightPainter extends LayeredHighlighter.LayerPainter {
-
-        public UnderlineHighlightPainter(Color c) {
-            color = c;
-        }
-
-        public void paint(Graphics g, int offs0, int offs1, Shape bounds,
-                JTextComponent c) {
-            // Do nothing: this method will never be called
-        }
-
-        public Shape paintLayer(Graphics g, int offs0, int offs1, Shape bounds,
-                JTextComponent c, View view) {
-            g.setColor(color == null ? c.getSelectionColor() : color);
-
-            Rectangle alloc = null;
-            if (offs0 == view.getStartOffset() && offs1 == view.getEndOffset()) {
-                if (bounds instanceof Rectangle) {
-                    alloc = (Rectangle) bounds;
-                } else {
-                    alloc = bounds.getBounds();
-                }
-            } else {
-                try {
-                    Shape shape = view.modelToView(offs0,
-                            Position.Bias.Forward, offs1,
-                            Position.Bias.Backward, bounds);
-                    alloc = (shape instanceof Rectangle) ? (Rectangle) shape
-                            : shape.getBounds();
-                } catch (BadLocationException e) {
-                    return null;
-                }
-            }
-
-            FontMetrics fm = c.getFontMetrics(c.getFont());
-            int baseline = alloc.y + alloc.height - fm.getDescent() + 1;
-            g.drawLine(alloc.x, baseline, alloc.x + alloc.width, baseline);
-            g.drawLine(alloc.x, baseline + 1, alloc.x + alloc.width,
-                    baseline + 1);
-
-            return alloc;
-        }
-        protected Color color; // The color for the underline
-    }
-    // Shared painter used for default highlighting
-    protected static final Highlighter.HighlightPainter sharedPainter = (HighlightPainter) new UnderlineHighlightPainter(null);
-    // Painter used for this highlighter
-    protected Highlighter.HighlightPainter painter;
-}

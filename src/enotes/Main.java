@@ -23,7 +23,7 @@ public class Main {
     public static void main(String[] args) {
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (Exception e) {}
+        } catch (Exception ignored) {}
 
         MainForm mf = new MainForm();
         mf.setSize(800, 550);
@@ -36,8 +36,9 @@ public class Main {
                 System.err.println("File not found or access denied: "+args[0]);
                 return;
             }
-            if (!mf.internalOpenFile(new File(args[0])))
-                System.err.println("Cannot open file: "+args[0]);
+            if (!mf.internalOpenFile(new File(args[0]))) {
+                System.err.println("Cannot open file: " + args[0]);
+            }
         }
     }
 
