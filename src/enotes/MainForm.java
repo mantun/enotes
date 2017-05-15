@@ -21,7 +21,11 @@ import javax.swing.filechooser.FileFilter;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
 import javax.swing.text.Element;
+import javax.swing.undo.CannotRedoException;
+import javax.swing.undo.CannotUndoException;
+import javax.swing.undo.UndoManager;
 import java.awt.*;
+import java.awt.event.KeyEvent;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -40,6 +44,8 @@ public class MainForm extends javax.swing.JFrame {
     public static final int NUM_BACKUPS = 5;
 
     private DocMetadata docm = new DocMetadata();
+    private UndoManager undoManager;
+
     private WordSearcher searcher;
     int tp_line, tp_col;
 
@@ -73,6 +79,8 @@ public class MainForm extends javax.swing.JFrame {
                 onDocumentUpdate(e);
             }
         });
+        undoManager = new UndoManager();
+        tp.getDocument().addUndoableEditListener(e -> undoManager.addEdit(e.getEdit()));
         updateCaretStatus();
         searcher = new WordSearcher(tp);
     }
@@ -100,6 +108,8 @@ public class MainForm extends javax.swing.JFrame {
         miExit = new javax.swing.JMenuItem();
         jMenu2 = new javax.swing.JMenu();
         miFind = new javax.swing.JMenuItem();
+        miUndo = new javax.swing.JMenuItem();
+        miRedo = new javax.swing.JMenuItem();
         jMenu3 = new javax.swing.JMenu();
         miAbout = new javax.swing.JMenuItem();
 
@@ -239,6 +249,18 @@ public class MainForm extends javax.swing.JFrame {
         });
         jMenu2.add(miFind);
 
+        miUndo.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_Z, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+        miUndo.setText("Undo");
+        miUndo.setMnemonic('U');
+        miUndo.addActionListener(this::miUndoActionPerformed);
+        jMenu2.add(miUndo);
+
+        miRedo.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_Y, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+        miRedo.setText("Redo");
+        miRedo.setMnemonic('R');
+        miRedo.addActionListener(this::miRedoActionPerformed);
+        jMenu2.add(miRedo);
+
         jMenuBar1.add(jMenu2);
 
         jMenu3.setText("Help");
@@ -330,11 +352,11 @@ public class MainForm extends javax.swing.JFrame {
     }
 
     private void tfFindKeyReleased(java.awt.event.KeyEvent evt) {
-        if (evt.getKeyChar() == 10 ) {
+        if (evt.getKeyChar() == KeyEvent.VK_ENTER ) {
             doSearch();
             evt.consume();
         }
-        if (evt.getKeyChar() == 27 ) {
+        if (evt.getKeyChar() == KeyEvent.VK_ESCAPE ) {
             tp.requestFocus();
             evt.consume();
         }
@@ -342,6 +364,26 @@ public class MainForm extends javax.swing.JFrame {
 
     private void btFindActionPerformed(java.awt.event.ActionEvent evt) {
         doSearch();
+    }
+
+    private void miUndoActionPerformed(java.awt.event.ActionEvent evt) {
+        try {
+            if (undoManager.canUndo()) {
+                undoManager.undo();
+            }
+        } catch (CannotUndoException ex) {
+            Logger.getLogger(MainForm.class.getName()).log(Level.INFO, ex.getMessage(), ex);
+        }
+    }
+
+    private void miRedoActionPerformed(java.awt.event.ActionEvent evt) {
+        try {
+            if (undoManager.canRedo()) {
+                undoManager.redo();
+            }
+        } catch (CannotRedoException ex) {
+            Logger.getLogger(MainForm.class.getName()).log(Level.INFO, ex.getMessage(), ex);
+        }
     }
 
     private void miAboutActionPerformed(java.awt.event.ActionEvent evt) {
@@ -366,6 +408,8 @@ public class MainForm extends javax.swing.JFrame {
     private javax.swing.JMenuItem miAbout;
     private javax.swing.JMenuItem miExit;
     private javax.swing.JMenuItem miFind;
+    private javax.swing.JMenuItem miUndo;
+    private javax.swing.JMenuItem miRedo;
     private javax.swing.JMenuItem miNew;
     private javax.swing.JMenuItem miOpen;
     private javax.swing.JMenuItem miSave;
@@ -489,7 +533,7 @@ public class MainForm extends javax.swing.JFrame {
             for (int i = NUM_BACKUPS - 1; i > 0; i--) {
                 bakFile(i).renameTo(bakFile(i + 1));
             }
-            if (fSave.renameTo(bakFile(1))) {
+            if (!fSave.exists() || fSave.renameTo(bakFile(1))) {
                 boolean saved = doc.save(fSave);
                 if (saved) {
                     docm.modified = false;
