@@ -9,18 +9,30 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.view.*;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.TextView;
+import enotes.doc.Doc;
+import enotes.doc.DocException;
+import enotes.doc.DocMetadata;
+import enotes.doc.DocPasswordException;
+import enotes.doc.Util;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FilenameFilter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.InvalidPropertiesFormatException;
 import java.util.Properties;
-
-import enotes.doc.*;
 
 public class ENoteEditor extends Activity {
 	
@@ -380,7 +392,7 @@ public class ENoteEditor extends Activity {
 		if (file_save.exists())
 			file_save.delete();
 		try {
-			d.doSave(file_save);
+			d.save(file_save);
 		} catch (IOException e) {
 			e.printStackTrace();
 			showMessage(e.toString()+" saving \""+file_save.getAbsolutePath()+"\": "+e.getMessage());
@@ -466,9 +478,8 @@ public class ENoteEditor extends Activity {
 	private void openFileProceed(String fname, String pwd) throws FileNotFoundException, DocPasswordException, IOException, DocException {
 		saveIfNeeded();
 		
-		Doc d = new Doc();
 		File fdir = new File(Environment.getExternalStorageDirectory(), doc_dir);
-		d.doOpen(new File(fdir, fname), pwd);
+		Doc d = Doc.open(new File(fdir, fname), pwd);
 		
 		doc_metadata = d.getDocMetadata();
 		EditText et = (EditText) findViewById(R.id.main_text);
@@ -498,7 +509,7 @@ public class ENoteEditor extends Activity {
 	private void aboutBox() {
 		AlertDialog.Builder builder = new AlertDialog.Builder(this);
 		builder.setMessage(
-				getResources().getString(R.string.about_text, version, Doc.CRYPTO_MODE))
+				getResources().getString(R.string.about_text, version, Util.CRYPTO_MODE))
 				.setCancelable(false).setPositiveButton("Ok",
 						new DialogInterface.OnClickListener() {
 							public void onClick(DialogInterface dialog, int id) {

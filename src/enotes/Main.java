@@ -1,21 +1,18 @@
 /*
- * (c) 2009. Ivan Voras <ivoras@fer.hr>
+ * Copyright (c) 2009-2014 Ivan Voras <ivoras@fer.hr>
+ * Copyright (c) 2017-2017 github.com/mantun
  * Released under the 2-clause BSDL.
  */
 
 
 package enotes;
 
+import javax.swing.*;
 import java.io.File;
-import javax.swing.UIManager;
 
-/**
- *
- * @author ivoras
- */
 public class Main {
 
-    static final String VERSION = "1.0beta6";
+    static final String VERSION = "2.0";
 
     /**
      * @param args the command line arguments

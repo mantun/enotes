@@ -1,40 +1,33 @@
 /*
- * (c) 2009.-2011. Ivan Voras <ivoras@fer.hr>
+ * Copyright (c) 2009-2014 Ivan Voras <ivoras@fer.hr>
+ * Copyright (c) 2017-2017 github.com/mantun
  * Released under the 2-clause BSDL.
- */
-
-
-/*
- * fmain.java
- *
- * Created on 2010.01.15, 12:44:24
  */
 
 package enotes;
 
-import enotes.doc.DocMetadata;
-import enotes.doc.DocException;
 import enotes.doc.Doc;
+import enotes.doc.DocException;
+import enotes.doc.DocMetadata;
 import enotes.doc.DocPasswordException;
+import enotes.doc.Util;
 
+import javax.swing.*;
+import javax.swing.event.CaretEvent;
+import javax.swing.event.CaretListener;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.filechooser.FileFilter;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.Document;
+import javax.swing.text.Element;
 import java.awt.*;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.*;
-import javax.swing.event.CaretEvent;
-import javax.swing.event.CaretListener;
-import javax.swing.filechooser.FileFilter;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.Document;
-import javax.swing.text.Element;
 
-/**
- *
- * @author ivoras
- */
 public class MainForm extends javax.swing.JFrame {
 
     static final int OPT_SAVE = 1;
@@ -63,6 +56,22 @@ public class MainForm extends javax.swing.JFrame {
                 updateCaretStatus();
             }
           } );
+        tp.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                onDocumentUpdate(e);
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                onDocumentUpdate(e);
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                onDocumentUpdate(e);
+            }
+        });
         updateCaretStatus();
         searcher = new WordSearcher(tp);
     }
@@ -283,10 +292,7 @@ public class MainForm extends javax.swing.JFrame {
     }
 
     private void tpKeyPressed(java.awt.event.KeyEvent evt) {
-        if (!docm.modified) {
-            docm.modified = true;
-            updateTitle();
-        }
+
     }
 
     private void tfFindFocusGained(java.awt.event.FocusEvent evt) {
@@ -328,8 +334,11 @@ public class MainForm extends javax.swing.JFrame {
     }
 
     private void miAboutActionPerformed(java.awt.event.ActionEvent evt) {
-        JOptionPane.showMessageDialog(this, "Encrypted Notepad "+Main.VERSION+"\n(c) 2010. Ivan Voras <ivoras@gmail.com>\n"+
-                "Released under the BSD License\nProject web: http://sourceforge.net/projects/enotes\n\nUsing "+Doc.CRYPTO_MODE);
+        JOptionPane.showMessageDialog(this, "Encrypted Notepad "+Main.VERSION+"\n" +
+                "Copyright (c) 2010-2014 Ivan Voras <ivoras@gmail.com>\n"+
+                "Copyright (c) 2017 github.com/mantun\n"+
+                "Released under the BSD License\n" +
+                "Project web: https://github.com/mantun/enotes\n\nUsing " + Util.CRYPTO_MODE);
     }
 
 
@@ -360,11 +369,15 @@ public class MainForm extends javax.swing.JFrame {
     
 
     private void updateTitle() {
-        String fn = docm.filename;
-        if (fn == null)
-            fn = "*New Document*";
-        if (docm.modified)
+        String fn;
+        if (docm.filename == null) {
+            fn = "New Document";
+        } else {
+            fn = new File(docm.filename).getName();
+        }
+        if (docm.modified) {
             fn += " [modified]";
+        }
         this.setTitle(fn + " - Encrypted Notepad");
     }
 
@@ -374,6 +387,12 @@ public class MainForm extends javax.swing.JFrame {
         lbCaret.setText(String.format("L:%d C:%s", tp_line, tp_col));
     }
 
+    private void onDocumentUpdate(DocumentEvent e) {
+        if (!docm.modified) {
+            docm.modified = true;
+            updateTitle();
+        }
+    }
 
     /**
      * Returns true if the document was saved or the user said he doesn't want
@@ -382,28 +401,37 @@ public class MainForm extends javax.swing.JFrame {
      * @return
      */
     private int checkSave(int whySave) {
-        if ((whySave == WHYSAVE_SAVE || whySave == WHYSAVE_CLOSE) && !docm.modified)
+        if ((whySave == WHYSAVE_SAVE || whySave == WHYSAVE_CLOSE) && !docm.modified) {
             return OPT_NOSAVE;
+        }
 
         if (whySave == WHYSAVE_CLOSE) {
-            int opt = JOptionPane.showConfirmDialog(this, "Do you want to save the file "+(docm.filename != null ? docm.filename : ""), "Save file?",
+            int opt = JOptionPane.showConfirmDialog(this, "Do you want to save the file " + (docm.filename != null ? docm.filename : ""), "Save file?",
                     JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
-            if (opt == JOptionPane.CANCEL_OPTION)
+            if (opt == JOptionPane.CANCEL_OPTION) {
                 return OPT_CANCEL;
-            if (opt == JOptionPane.NO_OPTION)
+            }
+            if (opt == JOptionPane.NO_OPTION) {
                 return OPT_NOSAVE;
+            }
         }
 
         if (docm.key == null) {
             String pwd = PasswordDialog.getPassword();
-            if (pwd == null)
+            if (pwd == null) {
                 return OPT_CANCEL;
+            }
             docm.setKey(pwd);
         }
 
-        File fSave = null;
+        File fSave;
         if (whySave == WHYSAVE_SAVEAS || docm.filename == null) {
             JFileChooser fch = new JFileChooser();
+            if (docm.filename != null) {
+                fch.setCurrentDirectory(new File(docm.filename).getParentFile());
+            } else {
+                fch.setCurrentDirectory(new File("."));
+            }
             fch.addChoosableFileFilter(new FileFilter() {
                 @Override
                 public boolean accept(File f) {
@@ -419,8 +447,9 @@ public class MainForm extends javax.swing.JFrame {
             });
             fch.addChoosableFileFilter(new FileFilter() {
                 public boolean accept(File f) {
-                    if (f.isDirectory())
+                    if (f.isDirectory()) {
                         return true;
+                    }
                     String name = f.getName().toLowerCase();
                     return name.endsWith(".etxt");
                 }
@@ -432,26 +461,25 @@ public class MainForm extends javax.swing.JFrame {
             int ret = fch.showSaveDialog(this);
             if (ret == JFileChooser.APPROVE_OPTION) {
                 fSave = fch.getSelectedFile();
-                if (fSave.getName().indexOf(".") == -1)
+                if (!fSave.getName().contains(".")) {
                     fSave = new File(fSave.getAbsolutePath() + ".etxt");
-            } else
+                }
+            } else {
                 return OPT_NOSAVE;
-        } else
+            }
+        } else {
             fSave = new File(docm.filename);
+        }
         
         docm.filename = fSave.getAbsolutePath();
         try {
             Doc doc = new Doc(tp.getText(), docm);
-            boolean saved = doc.doSave(fSave);
+            boolean saved = doc.save(fSave);
             if (saved) {
                 docm.modified = false;
                 updateTitle();
                 return OPT_SAVE;
             }
-            return OPT_CANCEL;
-        } catch (FileNotFoundException ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage());
-            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, ex.getMessage(), ex);
             return OPT_CANCEL;
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage());
@@ -463,14 +491,18 @@ public class MainForm extends javax.swing.JFrame {
 
     /**
      * Returns true if a file was loaded.
-     * 
-     * @return
      */
     private boolean openFile() {
-        if (checkSave(WHYSAVE_CLOSE) == OPT_CANCEL)
+        if (checkSave(WHYSAVE_CLOSE) == OPT_CANCEL) {
             return false;
+        }
 
         JFileChooser fch = new JFileChooser();
+        if (docm.filename != null) {
+            fch.setCurrentDirectory(new File(docm.filename).getParentFile());
+        } else {
+            fch.setCurrentDirectory(new File("."));
+        }
         fch.addChoosableFileFilter(new FileFilter() {
             @Override
             public boolean accept(File f) {
@@ -497,14 +529,11 @@ public class MainForm extends javax.swing.JFrame {
             }
         });
 
-        File fOpen = null;
-
         int ret = fch.showOpenDialog(this);
-        if (ret == JFileChooser.APPROVE_OPTION)
-            fOpen = fch.getSelectedFile();
-        else
+        if (ret != JFileChooser.APPROVE_OPTION) {
             return false;
-
+        }
+        File fOpen = fch.getSelectedFile();
         return internalOpenFile(fOpen);
     }
 
@@ -513,36 +542,37 @@ public class MainForm extends javax.swing.JFrame {
      * Open a file that's certainly there.
      */
     boolean internalOpenFile(File fOpen) {
-        Doc doc = new Doc();
-        while (true) {
-            try {
+        Doc doc;
+        try {
+            while (true) {
                 String pwd = PasswordDialog.getPassword();
-                if (pwd == null)
+                if (pwd == null) {
                     return false;
-                if (doc.doOpen(fOpen, pwd))
+                }
+                try {
+                    doc = Doc.open(fOpen, pwd);
                     break;
-                else
-                    return false;
-            } catch (DocPasswordException ex) {
-                continue;
-            } catch (DocException ex) {
-                Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, null, ex);
-                JOptionPane.showMessageDialog(this, ex.getMessage());
-                return false;
-            } catch (FileNotFoundException ex) {
-                Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, ex.getMessage(), ex);
-                JOptionPane.showMessageDialog(this, ex.getMessage());
-                return false;
-            } catch (IOException ex) {
-                Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, ex.getMessage(), ex);
-                JOptionPane.showMessageDialog(this, "IOException: "+ex.getMessage());
-                return false;
+                } catch (DocPasswordException ex) {
+                    // continue
+                }
             }
+        } catch (DocException | FileNotFoundException ex) {
+            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, ex.getMessage(), ex);
+            JOptionPane.showMessageDialog(this, ex.getMessage());
+            return false;
+        } catch (IOException ex) {
+            Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, ex.getMessage(), ex);
+            JOptionPane.showMessageDialog(this, "IOException: " + ex.getMessage());
+            return false;
         }
 
         docm = doc.getDocMetadata();
-        tp.setText(doc.getText());
-        tp.setCaretPosition(docm.caretPosition);
+        int caretPos = docm.caretPosition;
+        tp.setText(doc.getText()); // modifies docm.caretPosition
+        setCaretPosition(caretPos);
+        docm.modified = false;
+        docm.filename = fOpen.getAbsolutePath();
+        docm.caretPosition = caretPos;
         updateTitle();
         return true;
     }
@@ -558,19 +588,23 @@ public class MainForm extends javax.swing.JFrame {
             if (found == -1) {
                 JOptionPane.showMessageDialog(this, "Not found: " + findText);
             } else {
-                try {
-                    JViewport viewport = (JViewport) SwingUtilities.getAncestorOfClass(JViewport.class, tp);
-                    Rectangle r = tp.modelToView(found);
-                    int extentHeight = viewport.getExtentSize().height;
-                    int viewHeight = viewport.getViewSize().height;
-                    int y = Math.max(0, r.y - ((extentHeight - r.height) / 3));
-                    y = Math.min(y, viewHeight - extentHeight);
-                    viewport.setViewPosition(new Point(0, y));
-                    tp.setCaretPosition(found);
-                } catch (BadLocationException ignored) {
-                    // ignored
-                }
+                setCaretPosition(found);
             }
+        }
+    }
+
+    private void setCaretPosition(int caretPosition) {
+        try {
+            Rectangle r = tp.modelToView(caretPosition);
+            JViewport viewport = (JViewport) SwingUtilities.getAncestorOfClass(JViewport.class, tp);
+            int extentHeight = viewport.getExtentSize().height;
+            int viewHeight = viewport.getViewSize().height;
+            int y = Math.max(0, r.y - ((extentHeight - r.height) / 3));
+            y = Math.min(y, viewHeight - extentHeight);
+            viewport.setViewPosition(new Point(0, y));
+            tp.setCaretPosition(caretPosition);
+        } catch (BadLocationException ignored) {
+            // ignored
         }
     }
 }
