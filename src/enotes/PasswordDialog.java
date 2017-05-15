@@ -39,13 +39,15 @@ public class PasswordDialog extends javax.swing.JDialog {
         jLabel2.setText("Confirm password:");
 
         pwf1.addKeyListener(new java.awt.event.KeyAdapter() {
-            public void keyReleased(java.awt.event.KeyEvent evt) {
-                pwf1KeyReleased(evt);
+            @Override
+            public void keyPressed(KeyEvent evt) {
+                pwf1KeyPressed(evt);
             }
         });
         pwf2.addKeyListener(new java.awt.event.KeyAdapter() {
-            public void keyReleased(java.awt.event.KeyEvent evt) {
-                pwf2KeyReleased(evt);
+            @Override
+            public void keyPressed(KeyEvent evt) {
+                pwf2KeyPressed(evt);
             }
         });
 
@@ -114,12 +116,12 @@ public class PasswordDialog extends javax.swing.JDialog {
         clickOk();
     }
 
-    private void pwf1KeyReleased(java.awt.event.KeyEvent evt) {
-        keyReleased(evt);
+    private void pwf1KeyPressed(java.awt.event.KeyEvent evt) {
+        keyPressed(evt);
     }
 
-    private void pwf2KeyReleased(java.awt.event.KeyEvent evt) {
-        keyReleased(evt);
+    private void pwf2KeyPressed(java.awt.event.KeyEvent evt) {
+        keyPressed(evt);
     }
 
     private void clickCancel() {
@@ -127,7 +129,7 @@ public class PasswordDialog extends javax.swing.JDialog {
         this.setVisible(false);
     }
 
-    private void keyReleased(KeyEvent evt) {
+    private void keyPressed(KeyEvent evt) {
         if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
             clickOk();
         }
@@ -145,7 +147,7 @@ public class PasswordDialog extends javax.swing.JDialog {
                 return;
             }
         }
-        pwd = p1;
+        pwd = p1.isEmpty() ? null : p1;
         this.setVisible(false);
     }
 
