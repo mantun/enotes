@@ -37,6 +37,7 @@ public class MainForm extends javax.swing.JFrame {
     static final int WHYSAVE_SAVE = 1;
     static final int WHYSAVE_SAVEAS = 2;
     static final int WHYSAVE_CLOSE = 3;
+    public static final int NUM_BACKUPS = 5;
 
     private DocMetadata docm = new DocMetadata();
     private WordSearcher searcher;
@@ -474,11 +475,19 @@ public class MainForm extends javax.swing.JFrame {
         docm.filename = fSave.getAbsolutePath();
         try {
             Doc doc = new Doc(tp.getText(), docm);
-            boolean saved = doc.save(fSave);
-            if (saved) {
-                docm.modified = false;
-                updateTitle();
-                return OPT_SAVE;
+            bakFile(NUM_BACKUPS).delete();
+            for (int i = NUM_BACKUPS - 1; i > 0; i--) {
+                bakFile(i).renameTo(bakFile(i + 1));
+            }
+            if (fSave.renameTo(bakFile(1))) {
+                boolean saved = doc.save(fSave);
+                if (saved) {
+                    docm.modified = false;
+                    updateTitle();
+                    return OPT_SAVE;
+                }
+            } else {
+                JOptionPane.showMessageDialog(this, "Save failed, could not create backup file");
             }
             return OPT_CANCEL;
         } catch (Exception ex) {
@@ -486,6 +495,10 @@ public class MainForm extends javax.swing.JFrame {
             Logger.getLogger(MainForm.class.getName()).log(Level.SEVERE, ex.getMessage(), ex);
             return OPT_CANCEL;
         }
+    }
+
+    private File bakFile(int i) {
+        return new File(docm.filename + "." + i + ".bak");
     }
 
 
