@@ -1,87 +1,109 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * Copyright (c) 2009-2014 Ivan Voras <ivoras@fer.hr>
+ * Copyright (c) 2017-2017 github.com/mantun
+ * Released under the 2-clause BSDL.
  */
+
 package enotes;
 
-import java.awt.Color;
-import java.awt.FontMetrics;
-import java.awt.Graphics;
-import java.awt.Rectangle;
-import java.awt.Shape;
-import javax.swing.text.*;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.Document;
+import javax.swing.text.Highlighter;
+import javax.swing.text.JTextComponent;
+import java.awt.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
-/**
- *
- * @author ivoras
- */
-class WordSearcher {
+public class WordSearcher {
 
-    public WordSearcher(JTextComponent comp) {
+    public WordSearcher(JTextComponent comp, String word, int caretPosition) {
         this.comp = comp;
-        this.painter = new UnderlineHighlighter.UnderlineHighlightPainter(Color.red);
-    }
+        this.allMatchesPainter = new UnderlineHighlightPainter(Color.orange);
+        this.currentMatchPainter = new UnderlineHighlightPainter(Color.red);
 
-    // Search for a word and return the offset of the
-    // first occurrence. Highlights are added for all
-    // occurrences found.
-    public int search(String word, int caretPosition) {
-
-        removeHighlights();
-
-        if (word == null || word.equals("")) {
-            return -1;
+        if (word == null || word.isEmpty()) {
+            throw new IllegalArgumentException(word);
         }
-        
+        this.word = word.toLowerCase();
+
         // Look for the word we are given - insensitive search
+        Document d = comp.getDocument();
         String content;
         try {
-            Document d = comp.getDocument();
             content = d.getText(0, d.getLength()).toLowerCase();
         } catch (BadLocationException e) {
-            // Cannot happen
-            return -1;
+            throw new IllegalStateException(e);
         }
 
-        word = word.toLowerCase();
-        highlight(word, caretPosition, content);
-
-        int pos = content.indexOf(word, caretPosition);
-        if (pos == caretPosition) {
-            pos = content.indexOf(word, caretPosition + 1);
+        matches = new ArrayList<>();
+        int lastIndex = 0;
+        while ((lastIndex = content.indexOf(word, lastIndex)) != -1) {
+            matches.add(lastIndex);
+            lastIndex = lastIndex + word.length();
         }
-        return pos;
+        currentMatch = -1;
+        this.caretPosition = caretPosition;
     }
 
-    private void highlight(String word, int caretPosition, String content) {
-        int lastIndex = caretPosition;
-        int wordSize = word.length();
-
-        Highlighter highlighter = comp.getHighlighter();
-        while ((lastIndex = content.indexOf(word, lastIndex)) != -1) {
-            int endIndex = lastIndex + wordSize;
-            try {
-                highlighter.addHighlight(lastIndex, endIndex, painter);
-            } catch (BadLocationException ignored) {
-                // Nothing to do
+    public int findNext() {
+        if (currentMatch < 0) {
+            currentMatch = Collections.binarySearch(matches, caretPosition);
+            if (currentMatch < 0) {
+                currentMatch = -currentMatch - 1;
             }
-            lastIndex = endIndex;
+        } else if (currentMatch < matches.size()) {
+            currentMatch++;
+        }
+        highlight();
+        return currentMatch >= matches.size() ? -1 : matches.get(currentMatch);
+    }
+
+    public int findPrev() {
+        if (currentMatch < 0) {
+            currentMatch = Collections.binarySearch(matches, caretPosition);
+            if (currentMatch < 0) {
+                currentMatch = -currentMatch - 2;
+            }
+        } else if (currentMatch >= 0) {
+            currentMatch--;
+        }
+        highlight();
+        return currentMatch < 0 ? -1 : matches.get(currentMatch);
+    }
+
+    private void highlight() {
+        Highlighter highlighter = comp.getHighlighter();
+        highlighter.removeAllHighlights();
+        for (int i = 0; i < matches.size(); i++) {
+            Integer pos = matches.get(i);
+            try {
+                if (i == currentMatch) {
+                    highlighter.addHighlight(pos, pos + word.length(), currentMatchPainter);
+                } else {
+                    highlighter.addHighlight(pos, pos + word.length(), allMatchesPainter);
+                }
+            } catch (BadLocationException ignored) {
+                // ignored
+            }
         }
     }
 
     public void removeHighlights() {
-        // Remove any existing highlights for last word
-        Highlighter highlighter = comp.getHighlighter();
-        Highlighter.Highlight[] highlights = highlighter.getHighlights();
-        for (int i = 0; i < highlights.length; i++) {
-            Highlighter.Highlight h = highlights[i];
-            if (h.getPainter() instanceof UnderlineHighlighter.UnderlineHighlightPainter) {
-                highlighter.removeHighlight(h);
-            }
-        }
+        comp.getHighlighter().removeAllHighlights();
+    }
+
+    public String getWord() {
+        return word;
     }
 
     protected JTextComponent comp;
-    protected Highlighter.HighlightPainter painter;
+    private String word;
+    private int currentMatch;
+    private final List<Integer> matches;
+    private final int caretPosition;
+
+    protected Highlighter.HighlightPainter allMatchesPainter;
+    protected Highlighter.HighlightPainter currentMatchPainter;
 }
 

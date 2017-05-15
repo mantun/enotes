@@ -17,6 +17,8 @@ import javax.swing.event.CaretEvent;
 import javax.swing.event.CaretListener;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.event.UndoableEditEvent;
+import javax.swing.event.UndoableEditListener;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
@@ -25,6 +27,9 @@ import javax.swing.undo.CannotRedoException;
 import javax.swing.undo.CannotUndoException;
 import javax.swing.undo.UndoManager;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -80,9 +85,13 @@ public class MainForm extends javax.swing.JFrame {
             }
         });
         undoManager = new UndoManager();
-        tp.getDocument().addUndoableEditListener(e -> undoManager.addEdit(e.getEdit()));
+        tp.getDocument().addUndoableEditListener(new UndoableEditListener() {
+            @Override
+            public void undoableEditHappened(UndoableEditEvent e) {
+                undoManager.addEdit(e.getEdit());
+            }
+        });
         updateCaretStatus();
-        searcher = new WordSearcher(tp);
     }
 
     /** This method is called from within the constructor to
@@ -252,13 +261,23 @@ public class MainForm extends javax.swing.JFrame {
         miUndo.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_Z, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
         miUndo.setText("Undo");
         miUndo.setMnemonic('U');
-        miUndo.addActionListener(this::miUndoActionPerformed);
+        miUndo.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent evt) {
+                MainForm.this.miUndoActionPerformed(evt);
+            }
+        });
         jMenu2.add(miUndo);
 
         miRedo.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_Y, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
         miRedo.setText("Redo");
         miRedo.setMnemonic('R');
-        miRedo.addActionListener(this::miRedoActionPerformed);
+        miRedo.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent evt) {
+                MainForm.this.miRedoActionPerformed(evt);
+            }
+        });
         jMenu2.add(miRedo);
 
         jMenuBar1.add(jMenu2);
@@ -340,7 +359,10 @@ public class MainForm extends javax.swing.JFrame {
             tfFind.setText("Find...");
             tfFind.setForeground(java.awt.SystemColor.inactiveCaption);
         }
-        searcher.removeHighlights();
+        if (searcher != null) {
+            searcher.removeHighlights();
+            searcher = null;
+        }
     }
 
     private void miOpenActionPerformed(java.awt.event.ActionEvent evt) {
@@ -352,8 +374,8 @@ public class MainForm extends javax.swing.JFrame {
     }
 
     private void tfFindKeyReleased(java.awt.event.KeyEvent evt) {
-        if (evt.getKeyChar() == KeyEvent.VK_ENTER ) {
-            doSearch();
+        if (evt.getKeyChar() == KeyEvent.VK_ENTER || evt.getKeyCode() == KeyEvent.VK_F3) {
+            find((evt.getModifiers() & InputEvent.SHIFT_MASK) != 0);
             evt.consume();
         }
         if (evt.getKeyChar() == KeyEvent.VK_ESCAPE ) {
@@ -363,7 +385,7 @@ public class MainForm extends javax.swing.JFrame {
     }
 
     private void btFindActionPerformed(java.awt.event.ActionEvent evt) {
-        doSearch();
+        find(false);
     }
 
     private void miUndoActionPerformed(java.awt.event.ActionEvent evt) {
@@ -647,16 +669,25 @@ public class MainForm extends javax.swing.JFrame {
 
     /**
      * Highlight search words.
+     * @param backwards
      */
-    private void doSearch() {
+    private void find(boolean backwards) {
         String findText = tfFind.getText();
-        if (findText.length() != 0) {
-            int found = searcher.search(findText, tp.getCaretPosition());
-            if (found == -1) {
-                JOptionPane.showMessageDialog(this, "Not found: " + findText);
-            } else {
-                setCaretPosition(found);
-            }
+        if (searcher != null && !findText.equalsIgnoreCase(searcher.getWord())) {
+            searcher.removeHighlights();
+            searcher = null;
+        }
+        if (findText.isEmpty()) {
+            return;
+        }
+        if (searcher == null) {
+            searcher = new WordSearcher(tp, findText, tp.getCaretPosition());
+        }
+        int found = backwards ? searcher.findPrev() : searcher.findNext();
+        if (found == -1) {
+            JOptionPane.showMessageDialog(this, "Not found: " + findText);
+        } else {
+            setCaretPosition(found);
         }
     }
 
