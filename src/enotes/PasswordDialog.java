@@ -1,24 +1,14 @@
 /*
- * (c) 2009.-2010. Ivan Voras <ivoras@fer.hr>
+ * Copyright (c) 2009-2014 Ivan Voras <ivoras@fer.hr>
+ * Copyright (c) 2017-2017 github.com/mantun
  * Released under the 2-clause BSDL.
- */
-
-
-/*
- * PasswordDialog.java
- *
- * Created on 2010.01.17, 02:06:11
  */
 
 package enotes;
 
+import javax.swing.*;
 import java.awt.event.KeyEvent;
-import javax.swing.JOptionPane;
 
-/**
- *
- * @author ivoras
- */
 public class PasswordDialog extends javax.swing.JDialog {
 
     private String pwd = null;
@@ -48,6 +38,11 @@ public class PasswordDialog extends javax.swing.JDialog {
 
         jLabel2.setText("Confirm password:");
 
+        pwf1.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyReleased(java.awt.event.KeyEvent evt) {
+                pwf1KeyReleased(evt);
+            }
+        });
         pwf2.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyReleased(java.awt.event.KeyEvent evt) {
                 pwf2KeyReleased(evt);
@@ -112,25 +107,43 @@ public class PasswordDialog extends javax.swing.JDialog {
     }
 
     private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {
-        pwd = null;
-        this.setVisible(false);
+        clickCancel();
     }
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {
         clickOk();
     }
 
+    private void pwf1KeyReleased(java.awt.event.KeyEvent evt) {
+        keyReleased(evt);
+    }
+
     private void pwf2KeyReleased(java.awt.event.KeyEvent evt) {
-        if (evt.getKeyCode() == KeyEvent.VK_ENTER)
+        keyReleased(evt);
+    }
+
+    private void clickCancel() {
+        pwd = null;
+        this.setVisible(false);
+    }
+
+    private void keyReleased(KeyEvent evt) {
+        if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
             clickOk();
+        }
+        if (evt.getKeyCode() == KeyEvent.VK_ESCAPE) {
+            clickCancel();
+        }
     }
 
     private void clickOk() {
         String p1 = new String(pwf1.getPassword());
-        String p2 = new String(pwf2.getPassword());
-        if (!p1.equals(p2)) {
-            JOptionPane.showMessageDialog(this, "The passwords do not match!");
-            return;
+        if (pwf2.isVisible()) {
+            String p2 = new String(pwf2.getPassword());
+            if (!p1.equals(p2)) {
+                JOptionPane.showMessageDialog(this, "The passwords do not match!");
+                return;
+            }
         }
         pwd = p1;
         this.setVisible(false);
@@ -145,11 +158,14 @@ public class PasswordDialog extends javax.swing.JDialog {
     private javax.swing.JPasswordField pwf2;
 
 
-    public static String getPassword() {
+    public static String getPassword(boolean isCreate) {
         PasswordDialog pd = new PasswordDialog();
         pd.setResizable(false);
         pd.setModal(true);
         pd.setLocationRelativeTo(null);
+        pd.jLabel2.setVisible(isCreate);
+        pd.pwf2.setVisible(isCreate);
+        pd.pack();
         pd.setVisible(true);
 
         return pd.pwd;

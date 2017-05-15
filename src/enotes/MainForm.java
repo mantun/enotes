@@ -173,9 +173,11 @@ public class MainForm extends javax.swing.JFrame {
         getContentPane().add(jScrollPane1, java.awt.BorderLayout.CENTER);
 
         jMenu1.setText("File");
+        jMenu1.setMnemonic('F');
 
-        miNew.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_N, java.awt.event.InputEvent.CTRL_MASK));
+        miNew.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_N, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
         miNew.setText("New document...");
+        miNew.setMnemonic('N');
         miNew.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 miNewActionPerformed(evt);
@@ -183,8 +185,9 @@ public class MainForm extends javax.swing.JFrame {
         });
         jMenu1.add(miNew);
 
-        miOpen.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_O, java.awt.event.InputEvent.CTRL_MASK));
+        miOpen.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_O, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
         miOpen.setText("Open...");
+        miOpen.setMnemonic('O');
         miOpen.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 miOpenActionPerformed(evt);
@@ -192,8 +195,9 @@ public class MainForm extends javax.swing.JFrame {
         });
         jMenu1.add(miOpen);
 
-        miSave.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_S, java.awt.event.InputEvent.CTRL_MASK));
+        miSave.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_S, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
         miSave.setText("Save");
+        miSave.setMnemonic('S');
         miSave.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 miSaveActionPerformed(evt);
@@ -202,6 +206,7 @@ public class MainForm extends javax.swing.JFrame {
         jMenu1.add(miSave);
 
         miSaveAs.setText("Save As...");
+        miSaveAs.setMnemonic('A');
         miSaveAs.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 miSaveAsActionPerformed(evt);
@@ -211,6 +216,7 @@ public class MainForm extends javax.swing.JFrame {
         jMenu1.add(jSeparator1);
 
         miExit.setText("Exit");
+        miExit.setMnemonic('x');
         miExit.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 miExitActionPerformed(evt);
@@ -221,9 +227,11 @@ public class MainForm extends javax.swing.JFrame {
         jMenuBar1.add(jMenu1);
 
         jMenu2.setText("Edit");
+        jMenu2.setMnemonic('E');
 
-        miFind.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F, java.awt.event.InputEvent.CTRL_MASK));
+        miFind.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
         miFind.setText("Find...");
+        miFind.setMnemonic('F');
         miFind.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 miFindActionPerformed(evt);
@@ -234,8 +242,10 @@ public class MainForm extends javax.swing.JFrame {
         jMenuBar1.add(jMenu2);
 
         jMenu3.setText("Help");
+        jMenu3.setMnemonic('H');
 
         miAbout.setText("About");
+        miAbout.setMnemonic('A');
         miAbout.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 miAboutActionPerformed(evt);
@@ -377,7 +387,7 @@ public class MainForm extends javax.swing.JFrame {
             fn = new File(docm.filename).getName();
         }
         if (docm.modified) {
-            fn += " [modified]";
+            fn += "*";
         }
         this.setTitle(fn + " - Encrypted Notepad");
     }
@@ -415,14 +425,6 @@ public class MainForm extends javax.swing.JFrame {
             if (opt == JOptionPane.NO_OPTION) {
                 return OPT_NOSAVE;
             }
-        }
-
-        if (docm.key == null) {
-            String pwd = PasswordDialog.getPassword();
-            if (pwd == null) {
-                return OPT_CANCEL;
-            }
-            docm.setKey(pwd);
         }
 
         File fSave;
@@ -471,7 +473,15 @@ public class MainForm extends javax.swing.JFrame {
         } else {
             fSave = new File(docm.filename);
         }
-        
+
+        if (docm.key == null) {
+            String pwd = PasswordDialog.getPassword(true);
+            if (pwd == null) {
+                return OPT_CANCEL;
+            }
+            docm.setKey(pwd);
+        }
+
         docm.filename = fSave.getAbsolutePath();
         try {
             Doc doc = new Doc(tp.getText(), docm);
@@ -558,7 +568,7 @@ public class MainForm extends javax.swing.JFrame {
         Doc doc;
         try {
             while (true) {
-                String pwd = PasswordDialog.getPassword();
+                String pwd = PasswordDialog.getPassword(false);
                 if (pwd == null) {
                     return false;
                 }
