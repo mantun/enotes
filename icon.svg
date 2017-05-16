@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!--
+  ~ Copyright (c) 2009-2014 Ivan Voras <ivoras@fer.hr>
+  ~ Copyright (c) 2017-2017 github.com/mantun
+  ~ Released under the 2-clause BSDL.
+  -->
+
+<svg width="72" height="72" version="1.1" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="15,5 40,5 55,20 55,65 15,65" stroke="black" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+    <polygon points="40,5 40,20 55,20" stroke="none" fill="white"/>
+    <circle cx="35" cy="40" r="6" stroke="none" fill="white"/>
+    <circle cx="35" cy="55" r="2" stroke="none" fill="white"/>
+    <polygon points="33,40 37,40 37,55 33,55" stroke="none" fill="white"/>
+</svg>

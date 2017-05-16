@@ -8,6 +8,7 @@
 package enotes;
 
 import javax.swing.*;
+import java.awt.*;
 import java.io.File;
 
 public class Main {
@@ -26,6 +27,7 @@ public class Main {
         mf.setSize(800, 550);
         mf.setLocationRelativeTo(null);
         mf.setVisible(true);
+        mf.setIconImage(Toolkit.getDefaultToolkit().getImage(Main.class.getResource("icon.png")));
 
         if (args.length == 1) {
             File f = new File(args[0]);
