@@ -6,19 +6,10 @@
 
 package enotes;
 
-import enotes.doc.Doc;
-import enotes.doc.DocException;
-import enotes.doc.DocMetadata;
-import enotes.doc.DocPasswordException;
-import enotes.doc.Util;
+import enotes.doc.*;
 
 import javax.swing.*;
-import javax.swing.event.CaretEvent;
-import javax.swing.event.CaretListener;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
-import javax.swing.event.UndoableEditEvent;
-import javax.swing.event.UndoableEditListener;
+import javax.swing.event.*;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
@@ -31,9 +22,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
+import java.io.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -556,7 +545,7 @@ public class MainForm extends javax.swing.JFrame {
                 bakFile(i).renameTo(bakFile(i + 1));
             }
             if (!fSave.exists() || fSave.renameTo(bakFile(1))) {
-                boolean saved = doc.save(fSave);
+                boolean saved = doc.save(new FileOutputStream(fSave));
                 if (saved) {
                     docm.modified = false;
                     updateTitle();
@@ -638,8 +627,8 @@ public class MainForm extends javax.swing.JFrame {
                 if (pwd == null) {
                     return false;
                 }
-                try {
-                    doc = Doc.open(fOpen, pwd);
+                try (InputStream in = new FileInputStream(fOpen)) {
+                    doc = Doc.open(in, pwd);
                     break;
                 } catch (DocPasswordException ex) {
                     // continue

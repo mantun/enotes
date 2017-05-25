@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2009-2014 Ivan Voras <ivoras@fer.hr>
+ * Copyright (c) 2017-2017 github.com/mantun
+ * Released under the 2-clause BSDL.
+ */
+
 package net.ivoras.enotes;
 
 import android.app.Activity;
@@ -22,28 +28,20 @@ import enotes.doc.DocMetadata;
 import enotes.doc.DocPasswordException;
 import enotes.doc.Util;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FilenameFilter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.util.HashMap;
-import java.util.InvalidPropertiesFormatException;
 import java.util.Properties;
 
 public class ENoteEditor extends Activity {
 	
-	private static final String version = "1.0beta6";
+	private static final String version = "2.0";
 
 	private DocMetadata doc_metadata = new DocMetadata();
 
 	private String doc_dir = "documents";
 	private static final String doc_ext = ".etxt";
 	private static final String STATE_FILENAME = "state";
-	private static final String PREFS_FILENAME = "preferences.xls";
+	private static final String PREFS_FILENAME = "preferences.xml";
 	
 	private static final String PREF_PARANOID = "paranoid";
 	private boolean pref_paranoid = false;
@@ -59,21 +57,25 @@ public class ENoteEditor extends Activity {
 		
 		EditText et = (EditText) this.findViewById(R.id.main_text);
 		et.addTextChangedListener(new TextWatcher() {
+			@Override
 			public void afterTextChanged(Editable s) {
 				if (!doc_metadata.modified) {
 					doc_metadata.modified = true;
 					updateTitle();
 				}
 			}
+			@Override
 			public void beforeTextChanged(CharSequence s, int start, int count,
-					int after) {
+										  int after) {
 			}
+			@Override
 			public void onTextChanged(CharSequence s, int start, int before,
-					int count) {
+									  int count) {
 			}
 		});
-		if (fileExists(PREFS_FILENAME))
+		if (fileExists(PREFS_FILENAME)) {
 			loadPrefs();
+		}
 		if (fileExists(STATE_FILENAME) && !pref_paranoid) {
 			loadState();
 			destroyStateFile();
@@ -86,13 +88,10 @@ public class ENoteEditor extends Activity {
 			InputStream is = openFileInput(PREFS_FILENAME);
 			Properties p = new Properties();
 			p.loadFromXML(is);
-			if (p.getProperty(PREF_PARANOID) != null)
+			if (p.getProperty(PREF_PARANOID) != null) {
 				pref_paranoid = Boolean.parseBoolean(p.getProperty(PREF_PARANOID));
+			}
 			is.close();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (InvalidPropertiesFormatException e) {
-			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -103,24 +102,25 @@ public class ENoteEditor extends Activity {
 		try {
 			OutputStream os = openFileOutput(PREFS_FILENAME, Context.MODE_PRIVATE);
 			Properties p = new Properties();
-			if (pref_paranoid)
+			if (pref_paranoid) {
 				p.setProperty(PREF_PARANOID, pref_paranoid ? "true" : "false");
+			}
 			p.storeToXML(os, "Encrypted Notepad properties");
 			os.close();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
 
 	/* # Create options menu */
+	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		getMenuInflater().inflate(R.menu.menu_edit, menu);
 		return true;
 	}
 
 	/* # Handles options item selections */
+	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 		switch (item.getItemId()) {
 		case R.id.menu_about:
@@ -144,19 +144,22 @@ public class ENoteEditor extends Activity {
 		return false;
 	}
 	
+	@Override
 	public void onPause() {
 		System.err.println("---onPause! "+doc_metadata.filename);
-		if (doc_metadata.modified && doc_metadata.filename != null)
-				saveFileProceed(null, null, false);
-		else if (doc_metadata.filename == null)
+		if (doc_metadata.modified && doc_metadata.filename != null) {
+			saveFileProceed(null, null, false);
+		} else if (doc_metadata.filename == null) {
 			try {
 				saveState();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
+		}
 		super.onPause();
 	}
 	
+	@Override
 	public void onResume() {
 		System.err.println("---onResume!");
 		super.onResume();
@@ -166,6 +169,7 @@ public class ENoteEditor extends Activity {
 		}
 	}
 	
+	@Override
 	public void onStop() {
 		System.err.println("-- onStop");
 		saveIfNeeded();
@@ -223,7 +227,6 @@ public class ENoteEditor extends Activity {
 		String text = (String)smap.get("text");
 		et.setText(text);
 		doc_metadata = (DocMetadata) smap.get("metadata");
-		doc_metadata.modified = true;
 		et.setSelection(doc_metadata.caretPosition, doc_metadata.caretPosition);
 		updateTitle();
 		System.err.println("-- loadState() finished, length of text="+text.length());
@@ -233,8 +236,9 @@ public class ENoteEditor extends Activity {
 	/* Destroys state file */
 	@SuppressWarnings("unchecked")
 	private void destroyStateFile() {
-		if (!fileExists(STATE_FILENAME))
+		if (!fileExists(STATE_FILENAME)) {
 			return;
+		}
 		ObjectOutputStream oos = null;
 		try {
 			oos = new ObjectOutputStream(openFileOutput(STATE_FILENAME, Context.MODE_PRIVATE));
@@ -251,9 +255,11 @@ public class ENoteEditor extends Activity {
 	 */
 	private boolean fileExists(String name) {
 		String[] files = fileList();
-		for (int i = 0; i < files.length; i++)
-			if (files[i].equals(name))
+		for (int i = 0; i < files.length; i++) {
+			if (files[i].equals(name)) {
 				return true;
+			}
+		}
 		return false;
 	}
 
@@ -263,6 +269,7 @@ public class ENoteEditor extends Activity {
 	 * apparently doesn't in a consistent way, or at least doesn't pair it with
 	 * onRestoreInstanceState(). 
 	 */
+	@Override
 	public void onSaveInstanceState(Bundle b) {
 		System.err.println("-- onSaveInstanceState");
 		if (pref_paranoid) {
@@ -279,10 +286,12 @@ public class ENoteEditor extends Activity {
 	/*
 	 * See comment for onSaveInstanceState()
 	 */
+	@Override
 	public void onRestoreInstanceState(Bundle b) {
 		System.err.println("-- onRestoreInstanceState");
-		if (pref_paranoid)
+		if (pref_paranoid) {
 			return;
+		}
 		EditText et = (EditText) this.findViewById(R.id.main_text);
 		doc_metadata = (DocMetadata) b.getSerializable("metadata");
 		et.setText(b.getString("text"));
@@ -303,8 +312,9 @@ public class ENoteEditor extends Activity {
 				err = true;
 			}
 		}
-		if (err)
+		if (err) {
 			this.finish();
+		}
 	}
 	
 	private void saveIfNeeded() {
@@ -335,6 +345,7 @@ public class ENoteEditor extends Activity {
 		
 		Button btn_ok = (Button)dlg.findViewById(R.id.dafp_btn_ok);
 		btn_ok.setOnClickListener(new Button.OnClickListener() {
+			@Override
 			public void onClick(View v) {
 				String filename, pwd1, pwd2;
 				
@@ -345,8 +356,9 @@ public class ENoteEditor extends Activity {
 					showMessage(getResources().getString(R.string.invalid_filename));
 					return;
 				}
-				if (!filename.endsWith(doc_ext))
+				if (!filename.endsWith(doc_ext)) {
 					filename = filename + doc_ext;
+				}
 				
 				et = (EditText)dlg.findViewById(R.id.dafp_pwd1);
 				pwd1 = et.getText().toString();
@@ -380,19 +392,22 @@ public class ENoteEditor extends Activity {
 		}
 		
 		doc_metadata.caretPosition = et.getSelectionStart();
-		if (filename == null)
+		if (filename == null) {
 			filename = doc_metadata.filename;
-		else
+		} else {
 			doc_metadata.filename = filename;
+		}
 		
 		Doc d = new Doc(et.getText().toString(), doc_metadata);
-		if (pwd != null)
+		if (pwd != null) {
 			doc_metadata.setKey(pwd);
+		}
 		File file_save = new File(file_md, filename);
-		if (file_save.exists())
+		if (file_save.exists()) {
 			file_save.delete();
-		try {
-			d.save(file_save);
+		}
+		try (OutputStream out = new FileOutputStream(file_save)) {
+			d.save(out);
 		} catch (IOException e) {
 			e.printStackTrace();
 			showMessage(e.toString()+" saving \""+file_save.getAbsolutePath()+"\": "+e.getMessage());
@@ -415,6 +430,7 @@ public class ENoteEditor extends Activity {
 		ensureDocDir();
 		File fdir = new File(Environment.getExternalStorageDirectory(), doc_dir);
 		File[] file_list = fdir.listFiles(new FilenameFilter() {
+			@Override
 			public boolean accept(File dir, String fname) {
 				return fname.endsWith(doc_ext);
 			}
@@ -426,12 +442,14 @@ public class ENoteEditor extends Activity {
 			return;
 		}
 		final String[] file_names = new String[file_list.length];
-		for (int i = 0; i < file_list.length; i++)
+		for (int i = 0; i < file_list.length; i++) {
 			file_names[i] = file_list[i].getName();
+		}
 		AlertDialog.Builder builder = new AlertDialog.Builder(this);
 		builder.setTitle(getResources().getString(R.string.list_etxt_files,
 				doc_ext, doc_dir));
 		builder.setItems(file_names, new DialogInterface.OnClickListener() {
+			@Override
 			public void onClick(DialogInterface dialog, int item) {
 				dialog.dismiss();
 				openFile2(file_names[item]);
@@ -454,6 +472,7 @@ public class ENoteEditor extends Activity {
 		
 		Button btn_ok = (Button)dlg.findViewById(R.id.dap_ok);
 		btn_ok.setOnClickListener(new Button.OnClickListener() {
+			@Override
 			public void onClick(View v) {
 				EditText et = (EditText)dlg.findViewById(R.id.dap_pwd);
 				
@@ -479,7 +498,11 @@ public class ENoteEditor extends Activity {
 		saveIfNeeded();
 		
 		File fdir = new File(Environment.getExternalStorageDirectory(), doc_dir);
-		Doc d = Doc.open(new File(fdir, fname), pwd);
+		final File fOpen = new File(fdir, fname);
+		Doc d;
+		try (InputStream in = new FileInputStream(fOpen)) {
+			d = Doc.open(in, pwd);
+		}
 		
 		doc_metadata = d.getDocMetadata();
 		EditText et = (EditText) findViewById(R.id.main_text);
@@ -496,6 +519,7 @@ public class ENoteEditor extends Activity {
 		AlertDialog.Builder builder = new AlertDialog.Builder(this);
 		builder.setMessage(msg).setCancelable(false).setPositiveButton("Ok",
 				new DialogInterface.OnClickListener() {
+					@Override
 					public void onClick(DialogInterface dialog, int id) {
 						dialog.cancel();
 					}
@@ -512,6 +536,7 @@ public class ENoteEditor extends Activity {
 				getResources().getString(R.string.about_text, version, Util.CRYPTO_MODE))
 				.setCancelable(false).setPositiveButton("Ok",
 						new DialogInterface.OnClickListener() {
+							@Override
 							public void onClick(DialogInterface dialog, int id) {
 								dialog.cancel();
 							}
@@ -532,6 +557,7 @@ public class ENoteEditor extends Activity {
 		
 		Button btn_ok = (Button)dlg.findViewById(R.id.dp_btn_ok);
 		btn_ok.setOnClickListener(new Button.OnClickListener() {
+			@Override
 			public void onClick(View v) {
 				pref_paranoid = cb_paranoid.isChecked();
 				savePrefs();
@@ -545,12 +571,13 @@ public class ENoteEditor extends Activity {
 	/* Updates app title based on open file */
 	private void updateTitle() {
 		String fname;
-		if (doc_metadata.filename == null)
+		if (doc_metadata.filename == null) {
 			fname = getResources().getString(R.string.new_document);
-		else {
-			fname = doc_metadata.filename;
-			if (doc_metadata.modified)
-				fname = "* "+fname;
+		} else {
+			fname = new File(doc_metadata.filename).getName();
+		}
+		if (doc_metadata.modified) {
+			fname += "*";
 		}
 		this.setTitle(getResources().getString(R.string.app_title, fname));
 	}

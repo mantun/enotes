@@ -11,13 +11,7 @@ import enotes.doc.loaders.V2Loader;
 
 import javax.crypto.Cipher;
 import javax.crypto.CipherOutputStream;
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Arrays;
@@ -38,12 +32,12 @@ public class Doc {
     /**
      * Saves the currently edited document to the given file.
      */
-    public boolean save(File f) throws IOException, DocPasswordException  {
+    public boolean save(OutputStream out) throws IOException, DocPasswordException  {
         if (docm.key == null) {
             throw new DocPasswordException("Key not set in DocMetadata");
         }
 
-        try (FileOutputStream fout = new FileOutputStream(f); BufferedOutputStream bout = new BufferedOutputStream(fout)) {
+        try (BufferedOutputStream bout = new BufferedOutputStream(out)) {
 
             bout.write(DocMetadata.SIGNATURE);
             bout.write(DocMetadata.VERSION_FORMAT);
@@ -78,19 +72,19 @@ public class Doc {
     /**
      * Opens the specified file to be the currently edited document.
      */
-    public static Doc open(File fOpen, String pwd) throws IOException, DocException {
-        try (FileInputStream fin = new FileInputStream(fOpen); BufferedInputStream bin = new BufferedInputStream(fin)) {
+    public static Doc open(InputStream in, String pwd) throws IOException, DocException {
+        try (BufferedInputStream bin = new BufferedInputStream(in)) {
             byte[] sig = new byte[DocMetadata.SIGNATURE.length];
             bin.read(sig);
             if (!Arrays.equals(sig, DocMetadata.SIGNATURE)) {
                 if (Arrays.equals(sig, OldSigLoader.SIGNATURE)) {
                     return new OldSigLoader().load(bin, pwd);
                 }
-                throw new DocException("File is not a valid Encrypted Notepad file: " + fOpen.getAbsolutePath());
+                throw new DocException("File is not a valid Encrypted Notepad file");
             }
             byte ver_format = (byte) bin.read();
             if (ver_format > DocMetadata.VERSION_FORMAT) {
-                throw new DocException("File format version is newer than this app version supports: " + fOpen.getAbsolutePath());
+                throw new DocException("File format version is newer than this app version supports");
             }
             switch (ver_format) {
                 case 2: return new V2Loader().load(bin, pwd);
