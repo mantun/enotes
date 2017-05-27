@@ -47,6 +47,8 @@ public class Searcher {
             }
         } else if (currentMatch < matches.size()) {
             currentMatch++;
+        } else if (!matches.isEmpty()) {
+            currentMatch = 0;
         }
         highlight();
         return currentMatch >= matches.size() ? -1 : matches.get(currentMatch);
