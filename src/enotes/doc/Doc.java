@@ -32,38 +32,37 @@ public class Doc {
     /**
      * Saves the currently edited document to the given file.
      */
-    public boolean save(OutputStream out) throws IOException, DocPasswordException  {
+    public boolean save(OutputStream out) throws IOException, DocPasswordException {
         if (docm.key == null) {
             throw new DocPasswordException("Key not set in DocMetadata");
         }
 
-        try (BufferedOutputStream bout = new BufferedOutputStream(out)) {
+        out.write(DocMetadata.SIGNATURE);
+        out.write(DocMetadata.VERSION_FORMAT);
 
-            bout.write(DocMetadata.SIGNATURE);
-            bout.write(DocMetadata.VERSION_FORMAT);
+        byte[] iv = new byte[16];
+        try {
+            SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
+            random.nextBytes(iv);
+        } catch (NoSuchAlgorithmException ex) {
+            Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, ex);
+            System.exit(1);
+        }
 
-            byte[] iv = new byte[16];
-            try {
-                SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
-                random.nextBytes(iv);
-            } catch (NoSuchAlgorithmException ex) {
-                Logger.getLogger(this.getClass().getName()).log(Level.SEVERE, null, ex);
-                System.exit(1);
-            }
+        byte[] keyHash = Util.sha1hash(Util.concat(docm.key, iv));
 
-            byte[] keyHash = Util.sha1hash(Util.concat(docm.key, iv));
+        out.write(keyHash, 0, 2); /* Save password hash */
+        out.write(iv);
 
-            bout.write(keyHash, 0, 2); /* Save password hash */
-            bout.write(iv);
-
-            Cipher ecipher = Util.getCipher(iv, docm.key, Cipher.ENCRYPT_MODE);
-            try (CipherOutputStream cout = new CipherOutputStream(bout, ecipher); GZIPOutputStream zout = new GZIPOutputStream(cout); DataOutputStream dout = new DataOutputStream(zout)) {
-                docm.saveMetadata(dout);
-                byte[] ddata = text.getBytes("UTF-8");
-                dout.writeInt(ddata.length);
-                dout.write(ddata);
-                System.out.println("Written " + ddata.length + " bytes");
-            }
+        Cipher ecipher = Util.getCipher(iv, docm.key, Cipher.ENCRYPT_MODE);
+        CipherOutputStream cout = new CipherOutputStream(out, ecipher); // these are closed by the DataOutputStream below
+        GZIPOutputStream zout = new GZIPOutputStream(cout);             // can't use try w/ resources idiom for these
+        try (DataOutputStream dout = new DataOutputStream(zout)) {      // because Android doesn't like calling close() on an already closed stream
+            docm.saveMetadata(dout);
+            byte[] ddata = text.getBytes("UTF-8");
+            dout.writeInt(ddata.length);
+            dout.write(ddata);
+            System.out.println("Written " + ddata.length + " bytes");
         }
         return true;
     }

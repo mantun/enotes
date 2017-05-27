@@ -662,7 +662,7 @@ public class MainForm extends javax.swing.JFrame {
      */
     private void find(boolean backwards) {
         String findText = tfFind.getText();
-        if (searcher != null && !findText.equalsIgnoreCase(searcher.getWord())) {
+        if (searcher != null && !findText.equalsIgnoreCase(searcher.getSearcher().getWord())) {
             searcher.removeHighlights();
             searcher = null;
         }
@@ -672,7 +672,7 @@ public class MainForm extends javax.swing.JFrame {
         if (searcher == null) {
             searcher = new WordSearcher(tp, findText, tp.getCaretPosition());
         }
-        int found = backwards ? searcher.findPrev() : searcher.findNext();
+        int found = backwards ? searcher.getSearcher().findPrev() : searcher.getSearcher().findNext();
         if (found == -1) {
             JOptionPane.showMessageDialog(this, "Not found: " + findText);
         } else {
