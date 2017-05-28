@@ -439,7 +439,7 @@ public class MainForm extends javax.swing.JFrame {
         if (docm.filename == null) {
             fn = "New Document";
         } else {
-            fn = new File(docm.filename).getName();
+            fn = docm.displayName;
         }
         if (docm.modified) {
             fn += "*";
@@ -538,6 +538,7 @@ public class MainForm extends javax.swing.JFrame {
         }
 
         docm.filename = fSave.getAbsolutePath();
+        docm.displayName = fSave.getName();
         try {
             Doc doc = new Doc(tp.getText(), docm);
             bakFile(NUM_BACKUPS).delete();
@@ -650,6 +651,7 @@ public class MainForm extends javax.swing.JFrame {
         setCaretPosition(caretPos);
         docm.modified = false;
         docm.filename = fOpen.getAbsolutePath();
+        docm.displayName = fOpen.getName();
         docm.caretPosition = caretPos;
         updateTitle();
         return true;

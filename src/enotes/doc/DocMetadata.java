@@ -20,6 +20,7 @@ public class DocMetadata implements Serializable {
 
     public boolean modified = false;
     public String filename;
+    public String displayName;
     public int caretPosition;
     public byte[] key;
 
