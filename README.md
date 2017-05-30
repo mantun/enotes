@@ -4,7 +4,9 @@ It does only one thing, but aims to do it perfectly - a Notepad-like simple text
 
 Unencrypted data is never stored on-disk. 
 
-## Features
+# [Download](https://github.com/mantun/enotes/releases/download/v2.0/enotes.jar)
+
+# Features
 
 * Symmetric key AES encryption
 * Pre-encryption compression
