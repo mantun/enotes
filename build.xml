@@ -1,0 +1,30 @@
+<project default="jar">
+    <target name="clean">
+        <delete dir="out"/>
+    </target>
+
+    <target name="compile-core">
+        <mkdir dir="out/core/classes"/>
+        <javac srcdir="src/core" destdir="out/core/classes"/>
+    </target>
+
+    <target name="jar-core">
+        <jar destfile="out/jar/enotes-core.jar" basedir="out/core/classes"/>
+    </target>
+
+    <target name="compile" depends="compile-core">
+        <mkdir dir="out/swing-app/classes"/>
+        <javac srcdir="src/swing-app" destdir="out/swing-app/classes" classpath="out/core/classes"/>
+    </target>
+
+    <target name="jar" depends="compile" >
+        <jar destfile="out/jar/enotes.jar">
+            <fileset dir="out/core/classes"/>
+            <fileset dir="out/swing-app/classes"/>
+            <fileset dir="res"/>
+            <manifest>
+                <attribute name="Main-Class" value="enotes.Main"/>
+            </manifest>
+        </jar>
+    </target>
+</project>
