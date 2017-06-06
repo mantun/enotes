@@ -5,10 +5,10 @@
 
     <target name="compile-core">
         <mkdir dir="out/core/classes"/>
-        <javac srcdir="src/core" destdir="out/core/classes"/>
+        <javac target="1.7" srcdir="src/core" destdir="out/core/classes"/>
     </target>
 
-    <target name="jar-core">
+    <target name="jar-core" depends="compile-core">
         <jar destfile="out/jar/enotes-core.jar" basedir="out/core/classes"/>
     </target>
 
